@@ -1,2 +1,3 @@
-local MainCode = game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/Main")
+local MainCode
+MainCode = game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/Main")
 loadstring(MainCode)()
