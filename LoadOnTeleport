@@ -1,3 +1,0 @@
-local code = game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/Main")
-loadstring(code)()
-queue_on_teleport(code)
