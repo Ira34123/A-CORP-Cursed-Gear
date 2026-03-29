@@ -1,0 +1,943 @@
+--Maid
+function cleanTask(oldtask: any)
+	if typeof(oldtask) == "RBXScriptConnection" then
+		oldtask:Disconnect()
+	elseif typeof(oldtask) == "Instance" and oldtask:IsA("Tween") then
+		oldtask:Pause()
+		oldtask:Cancel()
+		oldtask:Destroy()
+	elseif typeof(oldtask) == "thread" then
+		return coroutine.status(oldtask) == "suspended" and task.cancel(oldtask) or nil
+	elseif oldtask.Destroy then
+		oldtask:Destroy()
+	end
+end
+
+local Maid = {}
+Maid.__index = Maid
+
+-- Adds new task and cleans old task if it exists
+Maid.__newindex = function(self, index, newTask)
+	local tasks = self.tasks
+	local oldtask = tasks[index]
+	if oldtask == newTask then
+		return
+	end
+
+	tasks[index] = newTask
+
+	if oldtask then
+		cleanTask(oldtask)
+	end
+end
+
+function Maid.new()
+	return setmetatable({tasks = {}}, Maid)
+end
+
+function Maid:Add(task)
+	local taskId = #self.tasks + 1
+	self[taskId] = task
+
+	return task, taskId
+end
+
+-- Cleans task and removes its reference from the task table
+function Maid:Remove(taskId)
+	local tasks = self.tasks
+	local task = tasks[taskId]
+
+	if task then
+		cleanTask(task)
+		tasks[taskId] = nil
+	end
+end
+
+-- Cleans all tasks and empties the tasks table
+function Maid:Clean()
+	local tasks = self.tasks
+	local index, _task = next(tasks)
+
+	while _task ~= nil do
+		tasks[index] = nil
+		cleanTask(_task)
+		index, _task = next(tasks)
+	end
+end
+
+-- Store old instance properties
+
+local Storage = {}
+Storage.__index = Storage
+
+function Storage.new()
+	return setmetatable({}, Storage)
+end
+
+function Storage:Add(Identifier: any, Property: string, Value: any)
+	if self[Identifier] then return end
+	self[Identifier] = {Property, Value}
+end
+
+function Storage:Remove(Identifier: any)
+	local attributes = self[Identifier]
+	self[Identifier] = nil
+	if attributes then
+		return attributes[1], attributes[2]
+	end
+end
+
+-- Instance wrap
+function WrapInstance(instanceMaid, identifier: any, type: string, parent: Instance?)
+	local maidInstance = instanceMaid[identifier]
+	if maidInstance then
+		return maidInstance
+	end
+
+	local newInstance = Instance.new(type, parent)
+	instanceMaid[identifier] = newInstance
+	local ac; ac = newInstance.AncestryChanged:Connect(function(_, parent)
+		if not parent then
+			instanceMaid:Remove(identifier)
+			if ac then
+				ac:Disconnect()
+				ac = nil
+			end
+		end
+	end)
+	return newInstance
+end
+
+-- gui library
+
+local repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
+
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+local Options = Library.Options
+local Toggles = Library.Toggles
+
+if getgenv().CGLibraryLoadedYay then
+	Library:Notify("Script already loaded.")
+	task.wait(13)
+	Library:Unload()
+	return
+end
+
+Library.ShowToggleFrameInKeybinds = true -- Make toggle keybinds work inside the keybinds UI (aka adds a toggle to the UI). Good for mobile users (Default value = true)
+Library.ShowCustomCursor = true -- Toggles the Linoria cursor globaly (Default value = true)
+Library.NotifySide = "Left" -- Changes the side of the notifications globaly (Left, Right) (Default value = Left)
+
+local Window = Library:CreateWindow({
+	-- Set Center to true if you want the menu to appear in the center
+	-- Set AutoShow to true if you want the menu to appear when it is created
+	-- Set Resizable to true if you want to have in-game resizable Window
+	-- Set ShowCustomCursor to false if you don't want to use the Linoria cursor
+	-- Set UnlockMouseWhileOpen to false if you don't want to unlock the mouse when the UI is toggled
+	-- NotifySide = Changes the side of the notifications (Left, Right) (Default value = Left)
+	-- Position and Size are also valid options here
+	-- but you do not need to define them unless you are changing them :)
+
+	Title = 'A-CORP/Cursed Gear',
+	Center = true,
+	AutoShow = true,
+	Resizable = true,
+	ShowCustomCursor = true,
+	UnlockMouseWhileOpen = true,
+	NotifySide = "Left",
+	TabPadding = 8,
+	MenuFadeTime = 0.2
+})
+
+local Tabs = {
+	Main = Window:AddTab('Main'),
+	EspTab = Window:AddTab('ESP'),
+	['UI Settings'] = Window:AddTab('UI Settings'),
+}
+
+-- GROUP BOXES
+local MainMovementBox = Tabs.Main:AddLeftGroupbox('Movement')
+local RightGroupBox = Tabs.Main:AddRightGroupbox('Placeholder')
+local LeftEspBox = Tabs.EspTab:AddLeftGroupbox('ESP')
+
+-- Constants
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+
+local BASE_SIZEX = 8
+local BASE_SIZEY = 4
+local defaultEspSize = UDim2.new(1, 0, 1/3, 0)
+local isGaia = game.PlaceId == 5208655184;
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local camera = workspace.CurrentCamera
+
+local MainMaid = Maid.new()
+MainMaid:Add(
+	LocalPlayer.CharacterAdded:Connect(function(character)
+		PlayerCharacter = character
+	end)
+)
+ 
+-- MOBILITY
+local noclipParts = Storage.new()
+function UpdateNoclip()
+	if not PlayerCharacter then return end
+
+	for _, instance in ipairs(PlayerCharacter:GetChildren()) do
+
+		if instance:IsA("BasePart") then
+			noclipParts:Add(instance.Name, "CanCollide", instance.CanCollide)
+			instance.CanCollide = false
+		end
+	end
+end
+
+local flyMaid = Maid.new()
+function UpdateFly()
+	local rootPart = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return end
+
+	local ForwardValue = UserInputService:IsKeyDown(Enum.KeyCode.W) and -1 or 0
+	local BackwardValue = UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0
+	local RightValue = UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0
+	local LeftValue = UserInputService:IsKeyDown(Enum.KeyCode.A) and -1 or 0
+	local UpValue = UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0
+
+	local flyBodyVelocity = WrapInstance(flyMaid, "flyBodyVelocity", "BodyVelocity", rootPart)
+	flyBodyVelocity.MaxForce = Vector3.new(9e9,9e9,9e9)
+	local flyVelocity = camera.CFrame:VectorToWorldSpace(
+		Vector3.new(
+			LeftValue + RightValue,
+			0,
+			ForwardValue + BackwardValue
+		)
+			*
+			Options.FlySpeed.Value
+	) + Vector3.new(0, UpValue * Options.FlySpeed.Value,0)
+
+
+	if flyVelocity == Vector3.zero then
+		local pos = rootPart.Position
+		rootPart.Anchored = true
+	else
+		rootPart.Anchored = false
+	end
+	flyBodyVelocity.Velocity = flyVelocity 
+end
+
+function UpdateSpeedHack()
+	if Toggles.Fly.Value then
+		return
+	end
+
+	local rootPart = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+	local hum = PlayerCharacter and PlayerCharacter:FindFirstChildOfClass("Humanoid")
+
+	if not rootPart or not hum then
+		return
+	end
+
+	rootPart.AssemblyLinearVelocity = rootPart.AssemblyLinearVelocity * Vector3.new(0, 1, 0)
+
+	local Speed = Options.SpeedhackSpeed.Value
+	local Direction = hum.MoveDirection
+
+	if Direction.Magnitude <= 0.001 then
+		return
+	end
+
+	rootPart.AssemblyLinearVelocity = rootPart.AssemblyLinearVelocity + Direction.Unit * Speed
+end
+
+function UpdateInfiniteJump()
+	if Toggles.Fly.Value then
+		return
+	end
+
+	local rootPart = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+
+	if not rootPart then 
+		return
+	end
+
+	if not UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+		return
+	end
+
+	rootPart.AssemblyLinearVelocity = Vector3.new(rootPart.AssemblyLinearVelocity.X, Options.InfiniteJumpBoost.Value, rootPart.AssemblyLinearVelocity.Z)
+end
+
+function getHPColor(percent)
+	percent = math.clamp(percent, 0, 100)
+	local t = percent
+	local hue = t * 0.33
+	return Color3.fromHSV(hue, 1, 1)
+end
+
+-- ESP
+
+function RemoveEsp(esp)
+	if not esp then return end
+	if esp.Text then esp.Text:Remove() end
+	if esp.HealthText then esp.HealthText:Remove() end
+	if esp.DistanceText then esp.DistanceText:Remove() end
+	if esp.Box then esp.Box:Remove() end
+	if esp.HealthBar then esp.HealthBar:Remove() end
+	if esp.HealthBarBg then esp.HealthBarBg:Remove() end
+end
+
+function updateEsp(entity: Instance, esp, args: {TextColor3: Color3})
+	local camera = workspace.CurrentCamera
+	if not entity then
+		RemoveEsp(esp)
+	end
+	local rootPart = entity:FindFirstChild("HumanoidRootPart") or entity:FindFirstChildWhichIsA("BasePart")
+	if not rootPart then
+		if esp.Box then esp.Box.Visible = false end
+		if esp.HealthBar then esp.HealthBar.Visible = false end
+		if esp.HealthBarBg then esp.HealthBarBg.Visible = false end
+		if esp.Text then esp.Text.Visible = false end
+		if esp.HealthText then esp.HealthText.Visible = false end
+		if esp.DistanceText then esp.DistanceText.Visible = false end
+		return
+	end
+
+	local humanoid = entity:FindFirstChildWhichIsA("Humanoid")
+	local health = humanoid and humanoid.Health or 100
+	local maxHealth = humanoid and humanoid.MaxHealth or 100
+	local healthPct = math.clamp(health / maxHealth, 0, 1)
+	local healthRounded = math.floor(health + 0.5)
+
+	local topPos = rootPart.Position + Vector3.new(0, 3, 0)
+	local bottomPos = rootPart.Position - Vector3.new(0, 3, 0)
+
+	local topScreen, topOnScreen = camera:WorldToViewportPoint(topPos)
+	local bottomScreen, bottomOnScreen = camera:WorldToViewportPoint(bottomPos)
+
+	local onScreen = topOnScreen and bottomOnScreen
+	if not onScreen then
+		if esp.Box then esp.Box.Visible = false end
+		if esp.HealthBar then esp.HealthBar.Visible = false end
+		if esp.HealthBarBg then esp.HealthBarBg.Visible = false end
+		if esp.Text then esp.Text.Visible = false end
+		if esp.HealthText then esp.HealthText.Visible = false end
+		if esp.DistanceText then esp.DistanceText.Visible = false end
+		return
+	end
+	
+	local TextColor3
+	if args.TextColor3 then
+		local PlayerSchool = PlayerCharacter and PlayerCharacter:GetAttribute("School")
+		local SquadID = PlayerCharacter and PlayerCharacter:GetAttribute("SquadID")
+		
+		local changed = false
+		if PlayerSchool and PlayerSchool ~= "" then
+			if PlayerSchool == entity:GetAttribute("School") then
+				TextColor3 = Color3.new(1-args.TextColor3.R, 1-args.TextColor3.G, 1-args.TextColor3.B)
+				changed = true
+			end
+		end
+		if not changed and SquadID and SquadID ~= "" then
+			if SquadID == entity:GetAttribute("SquadID") then
+				TextColor3 = Color3.new(1-args.TextColor3.R, 1-args.TextColor3.G, 1-args.TextColor3.B)
+				changed = true
+			end
+		end
+		if not changed then
+			TextColor3 = args.TextColor3
+		end
+	end
+
+	-- Calculate distance
+	local distance = (camera.CFrame.Position - rootPart.Position).Magnitude
+	local distanceRounded = math.floor(distance + 0.5)
+
+	local height = math.abs(topScreen.Y - bottomScreen.Y)
+	local width = height * 0.6
+
+	local x = topScreen.X - width / 2
+	local y = topScreen.Y
+
+	if esp.Box then
+		esp.Box.Size = Vector2.new(width, height)
+		esp.Box.Position = Vector2.new(x, y)
+		esp.Box.Visible = true
+		if args and TextColor3 then
+			esp.Box.Color = TextColor3
+		end
+	end
+
+	if esp.HealthBarBg then
+		esp.HealthBarBg.Size = Vector2.new(4, height)
+		esp.HealthBarBg.Position = Vector2.new(x - 6, y)
+		esp.HealthBarBg.Visible = true
+	end
+
+	if esp.HealthBar then
+		local barHeight = height * healthPct
+		esp.HealthBar.Size = Vector2.new(4, barHeight)
+		esp.HealthBar.Position = Vector2.new(x - 6, y + height - barHeight)
+		esp.HealthBar.Visible = true
+		esp.HealthBar.Color = getHPColor(healthPct)
+	end
+
+	if esp.Text then
+		esp.Text.Position = Vector2.new(topScreen.X, topScreen.Y - 20)
+		esp.Text.Visible = true
+		if args and TextColor3 then
+			esp.Text.Color = TextColor3
+		end
+	end
+
+	if esp.HealthText then
+		esp.HealthText.Text = healthRounded .. " / " .. math.floor(maxHealth)
+		esp.HealthText.Position = Vector2.new(topScreen.X, bottomScreen.Y + 5)
+		esp.HealthText.Visible = true
+		if args and TextColor3 then
+			esp.HealthText.Color = TextColor3
+		end
+	end
+
+	if esp.DistanceText then
+		esp.DistanceText.Text = distanceRounded .. " studs"
+		esp.DistanceText.Position = Vector2.new(topScreen.X, bottomScreen.Y + 22)
+		esp.DistanceText.Visible = true
+		if args and TextColor3 then
+			esp.DistanceText.Color = TextColor3
+		end
+	end
+end
+
+function createESP(entity: Instance, color: Color3, size: number)
+	local esp = {}
+
+	-- Name
+	local text = Drawing.new("Text")
+	text.Text = entity.Name
+	text.Color = color
+	text.Size = size
+	text.Center = true
+	text.Outline = true
+	text.OutlineColor = Color3.new(0, 0, 0)
+	text.Font = Drawing.Fonts.Plex
+	text.Visible = false
+	esp.Text = text
+
+	-- Health Text
+	local healthText = Drawing.new("Text")
+	healthText.Text = "100 HP"
+	healthText.Color = color
+	healthText.Size = size - 2
+	healthText.Center = true
+	healthText.Outline = true
+	healthText.OutlineColor = Color3.new(0, 0, 0)
+	healthText.Font = Drawing.Fonts.Plex
+	healthText.Visible = false
+	esp.HealthText = healthText
+
+	-- Distance Text
+	local distanceText = Drawing.new("Text")
+	distanceText.Text = "100 studs"
+	distanceText.Color = color
+	distanceText.Size = size - 4
+	distanceText.Center = true
+	distanceText.Outline = true
+	distanceText.OutlineColor = Color3.new(0, 0, 0)
+	distanceText.Font = Drawing.Fonts.Plex
+	distanceText.Visible = false
+	esp.DistanceText = distanceText
+
+	-- Box
+	local box = Drawing.new("Square")
+	box.Color = color
+	box.Thickness = 2
+	box.Filled = false
+	box.Transparency = 1
+	box.Visible = false
+	esp.Box = box
+
+	-- Health Bar Background
+	local bg = Drawing.new("Square")
+	bg.Color = Color3.new(0, 0, 0)
+	bg.Thickness = 1
+	bg.Filled = true
+	bg.Transparency = 0.7
+	bg.Visible = false
+	esp.HealthBarBg = bg
+
+	-- Health Bar
+	local bar = Drawing.new("Square")
+	bar.Color = Color3.fromRGB(0, 255, 0)
+	bar.Thickness = 1
+	bar.Filled = true
+	bar.Transparency = 1
+	bar.Visible = false
+	esp.HealthBar = bar
+
+	return esp
+end
+
+local PlayerEsps = {}
+local MobEsps = {}
+
+function createPlayerEsp(player: Player, tbl)
+	local character = player
+	if Players:GetPlayerFromCharacter(player) then
+		character = player.Character
+	end
+	if not character then return nil end
+	local color = Color3.new(1, 1, 1)
+	local size = 18
+	local esp = createESP(character, color, size)
+	esp.Text.Text = player.Name
+	tbl[player] = esp
+	return esp
+end
+
+local CacheEsps = {}
+function addCacheEsp(model: Instance)
+	if model.Name == "itemCacheModel" then
+		local part = model:FindFirstChild("itemCache")
+		if not part then return end
+
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.new(0, 200, 0, 100)
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.AlwaysOnTop = true
+		billboard.Adornee = part
+		billboard.Parent = part
+		table.insert(CacheEsps, billboard)
+
+		local text = Instance.new("TextLabel")
+		text.Size = UDim2.new(1, 0, 1, 0)
+		text.BackgroundTransparency = 1
+		text.Text = "Item Cache"
+		text.TextScaled = true
+		text.TextColor3 = Color3.new(1,1,0)
+		text.Parent = billboard
+	end
+end
+-- esp end
+
+-- enables functions
+local EnableFunctions = {
+	NoClip = function()
+		MainMaid.NoClipConn = RunService.RenderStepped:Connect(UpdateNoclip)
+	end,
+	Fly = function()
+		MainMaid.FlyConn = RunService.RenderStepped:Connect(UpdateFly)	
+	end,
+	SpeedHack = function()
+		MainMaid.SpeedHackConn = RunService.RenderStepped:Connect(UpdateSpeedHack)		
+	end,
+	InfiniteJump = function()
+		MainMaid.InfiniteJumpConn = RunService.RenderStepped:Connect(UpdateInfiniteJump)		
+	end,
+
+	-- ESP
+	PlayerEsp = function()
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player == LocalPlayer then 
+				continue
+			end
+
+			if not player.Character then
+				continue
+			end
+
+			createPlayerEsp(player, PlayerEsps)
+		end
+		MainMaid.PlayerEspConn = RunService.RenderStepped:Connect(function()
+			for player, esp in pairs(PlayerEsps) do
+				if not esp then
+					PlayerEsps[player] = nil
+					continue
+				end
+				if not player.Character then
+					RemoveEsp(esp)
+					PlayerEsps[player] = nil
+					continue
+				end
+				updateEsp(player.Character, esp, {
+					TextColor3 = Options.PlayerEspColor.Value,
+				})
+			end
+		end)
+	end,
+	MobEsp = function()
+		
+		local function checkMob(mob)
+			if mob == PlayerCharacter then 
+				return
+			end
+
+			if Players:GetPlayerFromCharacter(mob) then
+				return
+			end
+
+			createPlayerEsp(mob, MobEsps)
+		end
+		
+		for _, mob in ipairs(workspace.Live:GetChildren()) do
+			checkMob(mob)
+		end
+		MainMaid.MobEspConn = RunService.RenderStepped:Connect(function()
+			for player, esp in pairs(MobEsps) do
+				if not esp then
+					MobEsps[player] = nil
+					continue
+				end
+				if not player then
+					RemoveEsp(esp)
+					MobEsps[player] = nil
+					continue
+				end
+				updateEsp(player, esp, {
+					TextColor3 = Options.MobEspColor.Value,
+				})
+			end
+		end)
+		
+		MainMaid["MobAdded"] = workspace.Live.ChildAdded:Connect(checkMob)
+	end,
+	-- OTHER
+	PlayerNotifier = function()
+		for _, plr in game.Players:GetPlayers() do
+			if plr ~= LocalPlayer then
+				Library:Notify(`{plr.Name} has joined the game.`)
+			end
+		end
+	end,
+	TeleportDreamCube = function()
+
+		if not workspace:FindFirstChild("Thrown") then
+			return
+		end
+		MainMaid["TeleportDreamCube"] = workspace.Thrown.ChildAdded:Connect(function(part)
+			if not part:IsA("BasePart") then return end
+			if string.lower(part.Name):match("cub") then
+				for _, player in ipairs(Players:GetPlayers()) do
+					if PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart") then
+						local root = PlayerCharacter.HumanoidRootPart
+
+						root.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+
+						root.Anchored = true
+
+						task.delay(1, function()
+							if root then
+								root.Anchored = false
+							end
+						end)
+					end
+				end
+			end
+		end)
+	end,
+	CacheEsp = function()
+		for _, model in workspace.Thrown:GetChildren() do
+			addCacheEsp(model)
+		end
+		MainMaid["CacheEsp"] = workspace.Thrown.ChildAdded:Connect(addCacheEsp)
+	end,
+	TrinketPickup = function()
+		local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+		if not root then return end
+		
+		for _, obj in ipairs(workspace:GetChildren()) do
+			if not Toggles.TrinketPickup.Value then
+				break
+			end
+			if obj:IsA("BasePart") and obj.Name == "Loot" then
+				root.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
+				for i = 1, 3 do
+					VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.X, false, game)
+					task.wait(0.05) 
+					VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.X, false, game)
+				end
+				
+				if obj.Transparency >= 0.9 then
+					obj:Destroy()
+				end
+			end
+		end
+
+		if workspace:FindFirstChild("LootFolder") then
+			for _, obj in ipairs(workspace.LootFolder:GetChildren()) do
+				if not Toggles.TrinketPickup.Value then
+					break
+				end
+				if obj:IsA("BasePart") and obj.Name == "Loot" then
+					root.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
+					for i = 1, 3 do
+						VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.X, false, game)
+						task.wait(0.05) 
+						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.X, false, game)
+					end
+					
+					if obj.Transparency >= 0.9 then
+						obj:Destroy()
+					end
+				end
+			end
+		end
+
+		if  workspace:FindFirstChild("THEMAP") then
+			for _, obj in ipairs(workspace.THEMAP:GetChildren()) do
+				if not Toggles.TrinketPickup.Value then
+					break
+				end
+				if obj:IsA("BasePart") and obj.Name == "Loot" then
+					root.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
+					for i = 1, 3 do
+						VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.X, false, game)
+						task.wait(0.05) 
+						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.X, false, game)
+					end
+					
+					if obj.Transparency >= 0.9 then
+						obj:Destroy()
+					end
+				end
+			end
+		end
+	end,
+}
+
+-- toggles functions to disable
+local DisableFunctions = {
+	NoClip = function()
+		MainMaid:Remove("NoClipConn")
+		for name, _ in pairs(noclipParts) do
+			if not PlayerCharacter then return end
+			local part = PlayerCharacter:FindFirstChild(name)
+			local property, value = noclipParts:Remove(name) 
+			if part then
+				part[property] = value
+			end
+		end
+	end,
+	Fly = function()
+		MainMaid:Remove("FlyConn")
+		flyMaid:Remove("flyBodyVelocity")
+		local hrp = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			hrp.Anchored = false
+		end
+	end,
+	SpeedHack = function()
+		MainMaid:Remove("SpeedHackConn")
+	end,
+	InfiniteJump = function()
+		MainMaid:Remove("InfiniteJumpConn")
+	end,
+
+	-- ESP
+	PlayerEsp = function()
+		for i, esp in pairs(PlayerEsps) do
+			RemoveEsp(esp)
+			PlayerEsps[i] = nil
+		end
+		PlayerEsps = {}
+		MainMaid:Remove("PlayerEspConn")
+	end,
+	MobEsp = function()
+		for i, esp in pairs(MobEsps) do
+			RemoveEsp(esp)
+			MobEsps[i] = nil
+		end
+		MobEsps = {}
+		MainMaid:Remove("MobAdded")
+		MainMaid:Remove("MobEspConn")
+	end,
+	TeleportDreamCube = function()
+		MainMaid:Remove("TeleportDreamCube")
+	end,
+	CacheEsp = function()
+		for _, cache in ipairs(CacheEsps) do
+			if cache then
+				cache:Destroy()
+			end
+			CacheEsps = {}
+		end
+		MainMaid:Remove("CacheEsp")
+	end,
+}
+
+-- CONNECTIONS
+local PlayerAddedConnection = Players.PlayerAdded:Connect(function(player)
+	if Toggles.PlayerNotifier.Value then
+		Library:Notify(`{player.Name} has joined the game.`)
+	end
+
+	local CharacterAddedConnection = player.CharacterAdded:Connect(function(character)
+		if Toggles.PlayerEsp.Value then
+			if player ~= LocalPlayer then
+				if not PlayerEsps[player] then
+					createPlayerEsp(player, PlayerEsps)
+				end
+			end
+		end
+	end)
+
+	local CharacterRemovingConnection = player.CharacterRemoving:Connect(function(character)
+		if Toggles.PlayerEsp.Value then
+			if PlayerEsps[player] then
+				RemoveEsp(PlayerEsps[player])
+				PlayerEsps[player] = nil
+			end
+		end
+	end)
+
+	MainMaid:Add(CharacterAddedConnection)
+	MainMaid:Add(CharacterRemovingConnection)
+end)
+MainMaid:Add(PlayerAddedConnection)
+
+-- Library stuff
+
+function CreateToggle(Box: unknown, Name: string, Args: {Text: string?, Tooltip: string?, DisabledTooltip: string?, Default: boolean?, Disabled: boolean?, Risky: boolean?, Visible: boolean?}, NoKeyPicker: boolean?)
+	local tgl = Box:AddToggle(Name, Args)
+	if not NoKeyPicker then
+		tgl:AddKeyPicker(Name, {
+			Default = '',
+			Text = Args["Text"],
+			SyncToggleState = true
+		})
+	end
+	local function toggle()
+		if tgl.Value then
+			EnableFunctions[Name]()
+		else
+			if DisableFunctions[Name] then
+				DisableFunctions[Name]()
+			end
+		end
+	end
+	tgl:OnChanged(toggle)
+end
+
+MainMovementBox:AddSlider('FlySpeed', {
+	Text = 'Fly Speed',
+	Default = 150,
+	Min = 50,
+	Max = 350,
+	Rounding = 1,
+})
+
+MainMovementBox:AddSlider('SpeedhackSpeed', {
+	Text = 'Speed Hack Speed',
+	Default = 50,
+	Min = 50,
+	Max = 250,
+	Rounding = 1,
+})
+
+MainMovementBox:AddSlider('InfiniteJumpBoost', {
+	Text = 'Inf Jump Boost',
+	Default = 50,
+	Min = 10,
+	Max = 100,
+	Rounding = 1,
+})
+
+LeftEspBox:AddLabel('PlayerEspColor'):AddColorPicker('PlayerEspColor', {
+	Default = Color3.new(1, 1, 1), 
+	Title = 'Player ESP Color',
+	Transparency = 0,
+})
+
+LeftEspBox:AddLabel('MobEspColor'):AddColorPicker('MobEspColor', {
+	Default = Color3.new(1, 0.7, 0.7), 
+	Title = 'Mob ESP Color',
+	Transparency = 0,
+})
+
+CreateToggle(MainMovementBox, "NoClip", {Text = "No Clip"})
+CreateToggle(MainMovementBox, "Fly", {Text = "Fly"})
+CreateToggle(MainMovementBox, "SpeedHack", {Text = "Speed Hack"})
+CreateToggle(MainMovementBox, "InfiniteJump", {Text = "Infinite Jump"})
+CreateToggle(LeftEspBox, "PlayerEsp", {Text = "Player ESP"})
+CreateToggle(LeftEspBox, "MobEsp", {Text = "Mob ESP"})
+CreateToggle(LeftEspBox, "CacheEsp", {Text = "Item Cache ESP"})
+CreateToggle(RightGroupBox, "PlayerNotifier", {Text = "Notify player join"}, true)
+CreateToggle(RightGroupBox, "TeleportDreamCube", {Text = "TP Dream Cubes", Tooltip = "Teleports to all the cubes in the dream world"}, true)
+CreateToggle(RightGroupBox, "TrinketPickup", {Text = "Pickup trinkets"}, true)
+
+RightGroupBox:AddButton({
+	Text = "Teleport to cache",
+	Callback = function()
+		local folder = workspace.Thrown
+		local player = game.Players.LocalPlayer
+		local character = player.Character or player.CharacterAdded:Wait()
+		local hrp = character:WaitForChild("HumanoidRootPart")
+
+		local teleported = false
+
+		local function handleModel(model)
+			if teleported then return end
+			if not model then return end
+
+			local part = model:FindFirstChild("itemCache")
+			if not part then return end
+
+			hrp.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+			teleported = true
+		end
+
+		handleModel(folder:FindFirstChild("itemCacheModel"))
+		task.wait(0.2)
+		VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.X, false, game)
+		task.wait(0.05) 
+		VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.X, false, game)
+	end,
+})
+
+Library:OnUnload(function()
+	for _, func in pairs(DisableFunctions) do
+		func()
+	end
+	Library.Unloaded = true
+	getgenv().CGLibraryLoadedYay = false
+end)
+
+-- UI Settings
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+
+MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(value) Library.KeybindFrame.Visible = value end})
+MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = true, Callback = function(Value) Library.ShowCustomCursor = Value end})
+MenuGroup:AddDivider()
+MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
+MenuGroup:AddButton("Unload", function() Library:Unload() end)
+MenuGroup:AddToggle("LoadOnTeleport", {Text = "Load Script ON Teleport", Default = true, Callback = function(Value) getgenv().QUEUEonTeleportACORP = Value end})
+
+Library.ToggleKeybind = Options.MenuKeybind 
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+-- Ignore keys that are used by ThemeManager.
+-- (we dont want configs to save themes, do we?)
+SaveManager:IgnoreThemeSettings()
+
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
+
+ThemeManager:SetFolder('A-CORP/Cursed-Gear/Themes')
+SaveManager:SetFolder('A-CORP/Cursed-Gear')
+
+
+SaveManager:BuildConfigSection(Tabs['UI Settings'])
+
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
+
+
+SaveManager:LoadAutoloadConfig()
+
+getgenv().CGLibraryLoadedYay = true
