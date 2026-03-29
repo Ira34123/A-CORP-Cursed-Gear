@@ -911,6 +911,8 @@ end)
 -- UI Settings
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 
+local OnTp = false
+
 MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(value) Library.KeybindFrame.Visible = value end})
 MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = true, Callback = function(Value) Library.ShowCustomCursor = Value end})
 MenuGroup:AddDivider()
@@ -924,12 +926,20 @@ MenuGroup:AddToggle("LoadOnTeleport", {
 		if Value then
 			queue_on_teleport(MainCode)
 			print("Load on teleport enabled")
+			OnTp = true
 		else
-			queue_on_teleport('print("Load on teleport is disabled.")')
+			queue_on_teleport("")
 			print("Load on teleport disabled")
 		end
 	end
 })
+
+if not OnTp then
+	if Toggles.LoadOnTeleport.Value then
+		queue_on_teleport(MainCode)
+		print("Load on teleport enabled")
+	end
+end
 
 Library.ToggleKeybind = Options.MenuKeybind 
 
