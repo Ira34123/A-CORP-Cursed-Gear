@@ -126,7 +126,7 @@ if getgenv().CGLibraryLoadedYay then
 end
 
 Library.ShowToggleFrameInKeybinds = true -- Make toggle keybinds work inside the keybinds UI (aka adds a toggle to the UI). Good for mobile users (Default value = true)
-Library.ShowCustomCursor = true -- Toggles the Linoria cursor globaly (Default value = true)
+Library.ShowCustomCursor = false -- Toggles the Linoria cursor globaly (Default value = true)
 Library.NotifySide = "Left" -- Changes the side of the notifications globaly (Left, Right) (Default value = Left)
 
 local Window = Library:CreateWindow({
@@ -141,7 +141,7 @@ local Window = Library:CreateWindow({
 
 	Title = 'A-CORP/Cursed Gear',
 	Center = true,
-	AutoShow = true,
+	AutoShow = AutoShowGUI or false,
 	Resizable = true,
 	ShowCustomCursor = true,
 	UnlockMouseWhileOpen = true,
@@ -160,6 +160,7 @@ local Tabs = {
 local MainMovementBox = Tabs.Main:AddLeftGroupbox('Movement')
 local RightGroupBox = Tabs.Main:AddRightGroupbox('Placeholder')
 local LeftEspBox = Tabs.EspTab:AddLeftGroupbox('ESP')
+local AttachmentBox = Tabs.Main:AddLeftGroupbox('Attach')
 
 -- Constants
 local Players = game:GetService("Players")
@@ -184,6 +185,7 @@ MainMaid:Add(
 		PlayerCharacter = character
 	end)
 )
+
  
 -- MOBILITY
 local noclipParts = Storage.new()
@@ -281,6 +283,26 @@ function getHPColor(percent)
 	return Color3.fromHSV(hue, 1, 1)
 end
 
+function checkAlly(entity: Model): boolean
+	local PlayerSchool = PlayerCharacter and PlayerCharacter:GetAttribute("School")
+	local SquadID = PlayerCharacter and PlayerCharacter:GetAttribute("SquadID")
+
+	local changed = false
+	if PlayerSchool and PlayerSchool ~= "" then
+		if PlayerSchool == entity:GetAttribute("School") then
+			return true
+		end
+	end
+	if not changed and SquadID and SquadID ~= "" then
+		if SquadID == entity:GetAttribute("SquadID") then
+			return true
+		end
+	end
+	if entity:GetAttribute("MOB_behaviour") == "villager" then
+		return true
+	end
+end
+
 -- ESP
 
 function RemoveEsp(esp)
@@ -334,23 +356,9 @@ function updateEsp(entity: Instance, esp, args: {TextColor3: Color3})
 	
 	local TextColor3
 	if args.TextColor3 then
-		local PlayerSchool = PlayerCharacter and PlayerCharacter:GetAttribute("School")
-		local SquadID = PlayerCharacter and PlayerCharacter:GetAttribute("SquadID")
-		
-		local changed = false
-		if PlayerSchool and PlayerSchool ~= "" then
-			if PlayerSchool == entity:GetAttribute("School") then
-				TextColor3 = Color3.new(1-args.TextColor3.R, 1-args.TextColor3.G, 1-args.TextColor3.B)
-				changed = true
-			end
-		end
-		if not changed and SquadID and SquadID ~= "" then
-			if SquadID == entity:GetAttribute("SquadID") then
-				TextColor3 = Color3.new(1-args.TextColor3.R, 1-args.TextColor3.G, 1-args.TextColor3.B)
-				changed = true
-			end
-		end
-		if not changed then
+		if checkAlly(entity) then
+			TextColor3 = Color3.new(1-args.TextColor3.R, 1-args.TextColor3.G, 1-args.TextColor3.B)
+		else
 			TextColor3 = args.TextColor3
 		end
 	end
@@ -526,6 +534,83 @@ function addCacheEsp(model: Instance)
 end
 -- esp end
 
+function UpdateAttachToEntity(entity: Model)
+	local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return true
+	end
+	
+	if not entity then
+		return
+	end
+	
+	local EntityRootPart = entity:FindFirstChild("HumanoidRootPart") or entity.PrimaryPart or entity:FindFirstChildOfClass("BasePart")
+	if not EntityRootPart then
+		return
+	end
+	
+	local EntityHumanoid = entity:FindFirstChildOfClass("Humanoid")
+	if not EntityHumanoid then
+		return
+	end
+	
+	if EntityHumanoid.Health <= 0 then
+		return
+	end
+	
+	local angle = Options.AttachAngle.Value
+	local length = Options.AttachLength.Value
+	local lengthY = Options.AttachLengthY.Value
+	local XPosition = -math.cos(math.rad(angle))*length 
+	local ZPosition = -math.sin(math.rad(angle))*length
+	
+	local CF = (EntityRootPart.CFrame * CFrame.new(XPosition, lengthY, ZPosition))
+	root.CFrame = CFrame.lookAt(CF.Position, EntityRootPart.Position)
+	
+
+	return true
+end
+
+function getClosestEntity(AllyAllowed: boolean?, PlayerAllowed: boolean?): Model?
+	local closestEnemy, closestDistance = nil, math.huge
+	for _, obj in ipairs(workspace.Live:GetChildren()) do
+		if not PlayerAllowed and (obj == PlayerCharacter or Players:GetPlayerFromCharacter(obj)) or obj == PlayerCharacter then
+			continue
+		end
+	
+		if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+			
+			if not AllyAllowed and checkAlly(obj) then
+				continue
+			end
+			
+			if obj.Humanoid.Health <= 0 then
+				continue
+			end
+			local distance = (obj.HumanoidRootPart.Position - PlayerCharacter.HumanoidRootPart.Position).Magnitude
+			if distance < closestDistance then
+				closestEnemy = obj
+				closestDistance = distance
+			end
+		end
+	end
+	return closestEnemy
+end
+
+function getAllExits(): {BasePart}
+	local exitParts = {}
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and obj.Name == "Exit" then
+			for _, text in ipairs(obj:GetDescendants()) do
+				if text:IsA("TextLabel") then
+					exitParts[text.Text] = obj
+					break	
+				end
+			end
+		end
+	end
+	return exitParts
+end
 -- enables functions
 local EnableFunctions = {
 	NoClip = function()
@@ -709,6 +794,37 @@ local EnableFunctions = {
 			end
 		end
 	end,
+	AttachToEnemy = function()
+		if not PlayerCharacter then
+			return
+		end
+		
+		local closestEnemy
+		local StartAttaching: ()->()
+		local function AttachToEnemy()
+			MainMaid.AttachToEnemy = RunService.RenderStepped:Connect(function()
+				local EnemyExisting = UpdateAttachToEntity(closestEnemy)
+				if not EnemyExisting then
+					StartAttaching()
+				end
+			end)
+		end
+		
+		StartAttaching = function()
+			MainMaid:Remove("AttachToEnemy")
+			closestEnemy = getClosestEntity(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value)
+			while Toggles.AttachToEnemy and not closestEnemy do
+				task.wait(1)
+				closestEnemy = getClosestEntity(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value)
+			end
+			
+			if Toggles.AttachToEnemy then
+				AttachToEnemy()
+			end
+		end
+		
+		StartAttaching()
+	end,
 }
 
 -- toggles functions to disable
@@ -751,7 +867,6 @@ local DisableFunctions = {
 	MobEsp = function()
 		for i, esp in pairs(MobEsps) do
 			RemoveEsp(esp)
-			MobEsps[i] = nil
 		end
 		MobEsps = {}
 		MainMaid:Remove("MobAdded")
@@ -768,6 +883,9 @@ local DisableFunctions = {
 			CacheEsps = {}
 		end
 		MainMaid:Remove("CacheEsp")
+	end,
+	AttachToEnemy = function()
+		MainMaid:Remove("AttachToEnemy")
 	end,
 }
 
@@ -860,6 +978,61 @@ LeftEspBox:AddLabel('MobEspColor'):AddColorPicker('MobEspColor', {
 	Transparency = 0,
 })
 
+AttachmentBox:AddSlider('AttachAngle', {
+	Text = 'Attach Angle',
+	Default = 0,
+	Min = 0,
+	Max = 360,
+	Rounding = 1,
+})
+
+AttachmentBox:AddSlider('AttachLength', {
+	Text = 'Attaching length',
+	Default = 0,
+	Min = -30,
+	Max = 30,
+	Rounding = 1,
+})
+
+AttachmentBox:AddSlider('AttachLengthY', {
+	Text = 'Attaching length Y',
+	Default = 12,
+	Min = -30,
+	Max = 30,
+	Rounding = 1,
+})
+
+AttachmentBox:AddToggle("AttachToAllies", {Text = "Attach to Allies", Tooltip = "Allies include civilians", Default = false})
+AttachmentBox:AddToggle("AttachToPlayers", {Text = "Attach to Players", Default = false})
+
+local exits = getAllExits()
+local DropValues = {}
+for i, v in pairs(exits) do
+	table.insert(DropValues, i)
+end
+
+RightGroupBox:AddDropdown("MapTpDropdown", {
+	Values = DropValues,
+	Default = 1,
+	Text = "Select TP",
+	Searchable = true,
+	Visible = true
+})
+
+RightGroupBox:AddButton({
+	Text = "Teleport to map",
+	Callback = function()
+		local map = Options.MapTpDropdown.Value
+		local exit = exits[map]
+		if exit then
+			local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+			if root then
+				root.CFrame = exit.CFrame
+			end
+		end
+	end,
+})
+
 CreateToggle(MainMovementBox, "NoClip", {Text = "No Clip"})
 CreateToggle(MainMovementBox, "Fly", {Text = "Fly"})
 CreateToggle(MainMovementBox, "SpeedHack", {Text = "Speed Hack"})
@@ -870,6 +1043,7 @@ CreateToggle(LeftEspBox, "CacheEsp", {Text = "Item Cache ESP"})
 CreateToggle(RightGroupBox, "PlayerNotifier", {Text = "Notify player join"}, true)
 CreateToggle(RightGroupBox, "TeleportDreamCube", {Text = "TP Dream Cubes", Tooltip = "Teleports to all the cubes in the dream world"}, true)
 CreateToggle(RightGroupBox, "TrinketPickup", {Text = "Pickup trinkets"}, true)
+CreateToggle(AttachmentBox, "AttachToEnemy", {Text = "Attach to closest entity"})
 
 RightGroupBox:AddButton({
 	Text = "Teleport to cache",
@@ -911,10 +1085,8 @@ end)
 -- UI Settings
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 
-local OnTp = false
-
 MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(value) Library.KeybindFrame.Visible = value end})
-MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = true, Callback = function(Value) Library.ShowCustomCursor = Value end})
+MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = false, Callback = function(Value) Library.ShowCustomCursor = Value end})
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
 MenuGroup:AddButton("Unload", function() Library:Unload() end)
