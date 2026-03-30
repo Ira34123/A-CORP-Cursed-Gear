@@ -1,3 +1,4 @@
+local AutoShowGUI = true
 MainCode = game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/Main")
 loadstring(MainCode)()
 queue_on_teleport(MainCode)
