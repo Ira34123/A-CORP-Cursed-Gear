@@ -1,5 +1,5 @@
-local AutoShowGUI = true
+AutoShowGUI = true
+queue_on_teleport("AutoShowGUI = true")
 MainCode = game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/Main")
 loadstring(MainCode)()
-queue_on_teleport("AutoShowGUI = true")
 queue_on_teleport(MainCode)
