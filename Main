@@ -599,7 +599,31 @@ end
 
 function getAllExits(): {BasePart}
 	local exitParts = {}
-	for _, obj in ipairs(workspace:GetDescendants()) do
+	--for _, obj in ipairs(workspace:GetDescendants()) do
+	--	if obj:IsA("BasePart") and obj.Name == "Exit" then
+	--		for _, text in ipairs(obj:GetDescendants()) do
+	--			if text:IsA("TextLabel") then
+	--				exitParts[text.Text] = obj
+	--				break	
+	--			end
+	--		end
+	--	end
+	--end
+	
+	local MapStuff = workspace:FindFirstChild("MapStuff")
+	if not MapStuff then 
+		return
+	end
+	local Map = MapStuff:FindFirstChild("Map")
+	if not Map then
+		return
+	end
+	local Spawns = Map:FindFirstChild("Spawns")
+	if not Spawns then
+		return
+	end
+	
+	for _, obj in ipairs(Spawns:GetChildren()) do
 		if obj:IsA("BasePart") and obj.Name == "Exit" then
 			for _, text in ipairs(obj:GetDescendants()) do
 				if text:IsA("TextLabel") then
