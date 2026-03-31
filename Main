@@ -153,6 +153,7 @@ local Window = Library:CreateWindow({
 local Tabs = {
 	Main = Window:AddTab('Main'),
 	EspTab = Window:AddTab('ESP'),
+	APTab = Window:AddTab('AP'),
 	['UI Settings'] = Window:AddTab('UI Settings'),
 }
 
@@ -161,6 +162,7 @@ local MainMovementBox = Tabs.Main:AddLeftGroupbox('Movement')
 local RightGroupBox = Tabs.Main:AddRightGroupbox('Placeholder')
 local LeftEspBox = Tabs.EspTab:AddLeftGroupbox('ESP')
 local AttachmentBox = Tabs.Main:AddLeftGroupbox('Attach')
+local LeftAPBox = Tabs.APTab:AddLeftGroupbox('AP')
 
 -- Constants
 local Players = game:GetService("Players")
@@ -186,7 +188,7 @@ MainMaid:Add(
 	end)
 )
 
- 
+
 -- MOBILITY
 local noclipParts = Storage.new()
 function UpdateNoclip()
@@ -353,7 +355,7 @@ function updateEsp(entity: Instance, esp, args: {TextColor3: Color3})
 		if esp.DistanceText then esp.DistanceText.Visible = false end
 		return
 	end
-	
+
 	local TextColor3
 	if args.TextColor3 then
 		if checkAlly(entity) then
@@ -535,55 +537,55 @@ end
 -- esp end
 
 function UpdateAttachToEntity(entity: Model)
-	local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+	local root: BasePart? = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
 	if not root then
 		return true
 	end
-	
+
 	if not entity then
 		return
 	end
-	
-	local EntityRootPart = entity:FindFirstChild("HumanoidRootPart") or entity.PrimaryPart or entity:FindFirstChildOfClass("BasePart")
+
+	local EntityRootPart: BasePart? = entity:FindFirstChild("HumanoidRootPart") 
+		or entity.PrimaryPart 
+		or entity:FindFirstChildOfClass("BasePart")
+
 	if not EntityRootPart then
 		return
 	end
-	
-	local EntityHumanoid = entity:FindFirstChildOfClass("Humanoid")
-	if not EntityHumanoid then
+
+	local EntityHumanoid: Humanoid? = entity:FindFirstChildOfClass("Humanoid")
+	if not EntityHumanoid or EntityHumanoid.Health <= 0 then
 		return
 	end
-	
-	if EntityHumanoid.Health <= 0 then
-		return
-	end
-	
-	local angle = Options.AttachAngle.Value
-	local length = Options.AttachLength.Value
-	local lengthY = Options.AttachLengthY.Value
-	local XPosition = -math.cos(math.rad(angle))*length 
-	local ZPosition = -math.sin(math.rad(angle))*length
-	
-	local CF = (EntityRootPart.CFrame * CFrame.new(XPosition, lengthY, ZPosition))
-	root.CFrame = CFrame.lookAt(CF.Position, EntityRootPart.Position)
-	
+
+	local Latitude = math.rad(Options.AttachLatitude.Value)
+	local Longitude = math.rad(Options.AttachLongitude.Value)
+	local Length = Options.AttachLength.Value
+
+	local x = math.cos(Latitude) * math.cos(Longitude) * Length
+	local y = math.sin(Latitude) * Length
+	local z = math.cos(Latitude) * math.sin(Longitude) * Length
+
+
+	local offsetPosition = (EntityRootPart.CFrame * CFrame.new(x, y, z)).Position
+	root.CFrame = CFrame.lookAt(offsetPosition, EntityRootPart.Position)
 
 	return true
 end
-
 function getClosestEntity(AllyAllowed: boolean?, PlayerAllowed: boolean?): Model?
 	local closestEnemy, closestDistance = nil, math.huge
 	for _, obj in ipairs(workspace.Live:GetChildren()) do
 		if not PlayerAllowed and (obj == PlayerCharacter or Players:GetPlayerFromCharacter(obj)) or obj == PlayerCharacter then
 			continue
 		end
-	
+
 		if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-			
+
 			if not AllyAllowed and checkAlly(obj) then
 				continue
 			end
-			
+
 			if obj.Humanoid.Health <= 0 then
 				continue
 			end
@@ -609,7 +611,7 @@ function getAllExits(): {BasePart}
 	--		end
 	--	end
 	--end
-	
+
 	local MapStuff = workspace:FindFirstChild("MapStuff")
 	if not MapStuff then 
 		return
@@ -622,7 +624,7 @@ function getAllExits(): {BasePart}
 	if not Spawns then
 		return
 	end
-	
+
 	for _, obj in ipairs(Spawns:GetChildren()) do
 		if obj:IsA("BasePart") and obj.Name == "Exit" then
 			for _, text in ipairs(obj:GetDescendants()) do
@@ -635,6 +637,289 @@ function getAllExits(): {BasePart}
 	end
 	return exitParts
 end
+
+function getEntityClosestToCamera(AllyAllowed: boolean?, MobAllowed: boolean?)
+	local camera = workspace.CurrentCamera
+
+	local closestAngle, closestDistance = 0.35, 135
+	local closestEntity = nil
+	for _, obj in ipairs(workspace.Live:GetChildren()) do
+		if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+			if obj == PlayerCharacter then
+				continue
+			end
+			if not AllyAllowed and checkAlly(obj) then
+				continue
+			end
+			if not MobAllowed and not Players:GetPlayerFromCharacter(obj) then
+				continue
+			end
+			local root = obj.HumanoidRootPart
+			local direction = (root.Position - camera.CFrame.Position).Unit
+			local angle = camera.CFrame.LookVector:Dot(direction)
+			local distance = (root.Position - camera.CFrame.Position).Magnitude
+			if angle > closestAngle and distance < closestDistance then
+				closestEntity = obj
+				closestAngle = angle
+				closestDistance = distance
+			end
+		end
+	end
+	return closestEntity
+end
+
+function UpdateCameraLookAt(lookAt: Vector3)
+	local camera = workspace.CurrentCamera
+	camera.CFrame = CFrame.lookAt(camera.CFrame.Position, lookAt)
+end
+
+--------
+
+
+local ParryConfigs = {
+	["rbxassetid://13401152492"] = {
+		WhenToParry = 0.2,
+		Distance = 8,
+		HasToFace = 0.5,
+		Anim = "Fist1"
+	},
+	["rbxassetid://13401160357"] = {
+		WhenToParry = 0.2,
+		Distance = 8,
+		HasToFace = 0.5,
+		Anim = "Fist2"
+
+	},
+	["rbxassetid://13401154871"] = {
+		WhenToParry = 0.2,
+		Distance = 8,
+		HasToFace = 0,
+		Anim = "Fist3"
+
+	},
+	["rbxassetid://1340115708"] = {
+		WhenToParry = 0.2,
+		Distance = 8,
+		HasToFace = 0,
+		Anim = "Fist4"
+
+	},
+	["rbxassetid://13999191009"] = {
+		WhenToParry = 0.2,
+		Distance = 11,
+		HasToFace = 0,
+		Anim = "FistRunning"
+	},
+	["rbxassetid://13781915317"] = {
+		WhenToParry = 0.43,
+		Distance = 10,
+		Anim = "FistCrit"
+	},
+	["rbxassetid://15323341659"] = {
+		WhenToParry = 0.22,
+		Distance = 10,
+		Anim = "SpearCrit"
+	},
+	["rbxassetid://15319543609"] = {
+		WhenToParry = 0.22,
+		Distance = 9,
+		HasToFace = 0,
+		Anim = "Spear1"
+	},
+	["rbxassetid://15319553487"] = {
+		WhenToParry = 0.22,
+		Distance = 9,
+		HasToFace = 0,
+		Anim = "Spear2"
+	},
+	["rbxassetid://15319570510"] = {
+		WhenToParry = 0.22,
+		Distance = 9,
+		HasToFace = 0,
+		Anim = "Spear3"
+	},
+	["rbxassetid://15319575789"] = {
+		WhenToParry = 0.22,
+		Distance = 9,
+		HasToFace = 0,
+		Anim = "Spear4"
+	},
+	["rbxassetid://153232186955"] = {
+		WhenToParry = 0.22,
+		Distance = 11,
+		HasToFace = 0,
+		Anim = "SpearRunning"
+	},
+	["rbxassetid://139578511247534"] = {
+		WhenToParry = 0.22,
+		Distance = 8	,
+		HasToFace = 0,
+		Anim = "TwoSword1"
+	},
+	["rbxassetid://708612799294680"] = {
+		WhenToParry = 0.22,
+		Distance = 8,
+		HasToFace = 0,
+		Anim = "TwoSword2"
+	},
+	["rbxassetid://121372725455349"] = {
+		WhenToParry = 0.22,
+		Distance = 8,
+		HasToFace = 0,
+		Anim = "TwoSword3"
+	},
+	["rbxassetid://95680227625811"] = {
+		WhenToParry = 0.22,
+		Distance = 8,
+		HasToFace = 0,
+		Anim = "TwoSword4"
+	},
+	["rbxassetid://103112625386223"] = {
+		WhenToParry = 0.32,
+		Distance = 9,
+		HasToFace = 0,
+		Anim = "TwoSwordRunning"
+	},
+	["rbxassetid://13201752394"] = {
+		WhenToParry = 0.2,
+		Distance = 8,
+		HasToFace = 0,
+		Anim = "OneSword1"
+	},
+	["rbxassetid://13201762170"] = {
+		WhenToParry = 0.17,
+		Distance = 8,
+		HasToFace = 0,
+		Anim = "OneSword2"
+	},
+	["rbxassetid://13201768794"] = {
+		WhenToParry = 0.25,
+		Distance = 8,
+		HasToFace = 0,
+		Anim = "OneSword3"
+	},
+	["rbxassetid://13201772943"] = {
+		WhenToParry = 0.2,
+		Distance = 8,
+		HasToFace = 0,
+		Anim = "OneSword4"
+	},
+	["rbxassetid://13191761678"] = {
+		WhenToParry = 0.34,
+		Distance = 9,
+		HasToFace = 0,
+		Anim = "OneSwordRunning"
+	},
+	["rbxassetid://13336390868"] = {
+		WhenToParry = 0.41,
+		Distance = 11,
+		Anim = "SwordCrit"
+	},
+}
+
+--------
+
+local function horizontalLookVector(root)
+	local look = root.CFrame.LookVector
+	look = Vector3.new(look.X, 0, look.Z).Unit
+	return look
+end
+
+
+
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local AutoParryMaid = Maid.new()
+
+function HandleParry(entity) 
+	AutoParryMaid[entity] = entity.Humanoid.Animator.AnimationPlayed:Connect(function(animationTrack)
+		local AnimationConfig = ParryConfigs[animationTrack.Animation.AnimationId]
+		if AnimationConfig then
+			local MaxDistance = AnimationConfig.Distance * 1.5
+			local EntityRootPart = entity and entity:FindFirstChild("HumanoidRootPart")
+			local EntityHumanoid = entity and entity:FindFirstChild("Humanoid")
+			local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+			if not root then
+				return
+			end
+			if EntityRootPart and EntityHumanoid then
+				local distance = (root.Position - EntityRootPart.Position).Magnitude
+				if distance > MaxDistance then
+					return
+				end
+
+				local Time = AnimationConfig.WhenToParry
+				local Ping = LocalPlayer:GetNetworkPing()
+				local Delay = Options.ParryDelay.Value/100
+				local HasToFace = AnimationConfig.HasToFace 
+				
+				if Toggles.PingAdjust.Value then
+					Ping = LocalPlayer:GetNetworkPing()
+				else
+					Ping = 0
+				end
+
+				local ParryPercentage = (Time-Ping-Delay)/animationTrack.Length
+				
+				local i = 0
+				local conn
+				conn = RunService.RenderStepped:Connect(function()
+					local progress = animationTrack.TimePosition / animationTrack.Length
+					if i == 50 then
+						conn:Disconnect()
+						return
+					end
+					if progress >= ParryPercentage then
+						--if HasToFace then
+						--	local alignment = horizontalLookVector(root)
+						--		:Dot(horizontalLookVector(EntityRootPart))
+						--	if HasToFace > alignment then
+						--		i += 1
+						--		return
+						--	end
+						--end
+						task.spawn(function()
+							for i = 1, 3 do 
+								VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+								task.wait(0.05)
+								VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+							end
+						end)
+						conn:Disconnect()
+					end
+				end)
+
+				AutoParryMaid:Add(conn)
+			else
+				AutoParryMaid:Remove(entity)
+			end
+		end
+	end)
+end
+
+function StartAutoParry()
+	for _, entity in ipairs(workspace.Live:GetChildren()) do
+		if entity:FindFirstChild("Humanoid") and entity.Humanoid:FindFirstChild("Animator") and entity ~= PlayerCharacter then
+			if entity.Humanoid.Health > 0 then
+				HandleParry(entity)
+			end
+		end
+	end
+
+	AutoParryMaid.AutoParryChildAdded = workspace.Live.ChildAdded:Connect(function(entity)
+		if entity:FindFirstChild("Humanoid") and entity.Humanoid:FindFirstChild("Animator") and entity ~= PlayerCharacter then
+			if entity.Humanoid.Health > 0 then
+				HandleParry(entity)
+			end
+		end
+	end)
+end
+
+function EndAutoParry()
+	AutoParryMaid:Clean()
+end
+
+--------------------------------
 -- enables functions
 local EnableFunctions = {
 	NoClip = function()
@@ -681,7 +966,7 @@ local EnableFunctions = {
 		end)
 	end,
 	MobEsp = function()
-		
+
 		local function checkMob(mob)
 			if mob == PlayerCharacter then 
 				return
@@ -693,7 +978,7 @@ local EnableFunctions = {
 
 			createPlayerEsp(mob, MobEsps)
 		end
-		
+
 		for _, mob in ipairs(workspace.Live:GetChildren()) do
 			checkMob(mob)
 		end
@@ -713,7 +998,7 @@ local EnableFunctions = {
 				})
 			end
 		end)
-		
+
 		MainMaid["MobAdded"] = workspace.Live.ChildAdded:Connect(checkMob)
 	end,
 	-- OTHER
@@ -759,7 +1044,7 @@ local EnableFunctions = {
 	TrinketPickup = function()
 		local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
 		if not root then return end
-		
+
 		for _, obj in ipairs(workspace:GetChildren()) do
 			if not Toggles.TrinketPickup.Value then
 				break
@@ -771,7 +1056,7 @@ local EnableFunctions = {
 					task.wait(0.05) 
 					VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.X, false, game)
 				end
-				
+
 				if obj.Transparency >= 0.9 then
 					obj:Destroy()
 				end
@@ -790,7 +1075,7 @@ local EnableFunctions = {
 						task.wait(0.05) 
 						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.X, false, game)
 					end
-					
+
 					if obj.Transparency >= 0.9 then
 						obj:Destroy()
 					end
@@ -810,7 +1095,7 @@ local EnableFunctions = {
 						task.wait(0.05) 
 						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.X, false, game)
 					end
-					
+
 					if obj.Transparency >= 0.9 then
 						obj:Destroy()
 					end
@@ -822,7 +1107,7 @@ local EnableFunctions = {
 		if not PlayerCharacter then
 			return
 		end
-		
+
 		local closestEnemy
 		local StartAttaching: ()->()
 		local function AttachToEnemy()
@@ -833,21 +1118,58 @@ local EnableFunctions = {
 				end
 			end)
 		end
-		
+
 		StartAttaching = function()
 			MainMaid:Remove("AttachToEnemy")
 			closestEnemy = getClosestEntity(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value)
-			while Toggles.AttachToEnemy and not closestEnemy do
-				task.wait(1)
-				closestEnemy = getClosestEntity(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value)
-			end
-			
-			if Toggles.AttachToEnemy then
+			MainMaid.WaitingForAttach = task.spawn(function()
+				while not closestEnemy do
+					task.wait(1)
+					closestEnemy = getClosestEntity(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value)
+				end
 				AttachToEnemy()
-			end
+			end)
+
 		end
-		
+
 		StartAttaching()
+	end,
+	LockOn = function()
+		if not PlayerCharacter then
+			return
+		end
+
+		local closestEnemy
+		local StartAttaching: ()->()
+		local function StartLockOn()
+			MainMaid.LockOnConn = RunService.RenderStepped:Connect(function()
+				local root = closestEnemy and closestEnemy:FindFirstChild("HumanoidRootPart")
+				local hum = closestEnemy and closestEnemy:FindFirstChildOfClass("Humanoid")
+				if not root or not hum or hum.Health <= 0 then
+					StartAttaching()
+				else
+					UpdateCameraLookAt(root.Position)
+				end
+			end)
+		end
+
+		StartAttaching = function()
+			MainMaid:Remove("LockOnConn")
+			MainMaid.WaitingForEntity = task.spawn(function()
+				closestEnemy = getEntityClosestToCamera(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Valu)
+				while not closestEnemy do
+					task.wait(1)
+					closestEnemy = getEntityClosestToCamera(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Valu)
+					print(closestEnemy)
+				end
+				StartLockOn()
+			end)
+		end
+
+		StartAttaching()
+	end,
+	AutoParry = function()
+		StartAutoParry()
 	end,
 }
 
@@ -910,6 +1232,17 @@ local DisableFunctions = {
 	end,
 	AttachToEnemy = function()
 		MainMaid:Remove("AttachToEnemy")
+		MainMaid:Remove("AttachPosition")
+		MainMaid:Remove("WaitingForAttach")
+
+	end,
+	LockOn = function()
+		MainMaid:Remove("LockOnConn")
+		MainMaid:Remove("WaitingForEntity")
+
+	end,
+	AutoParry = function()
+		EndAutoParry()
 	end,
 }
 
@@ -1002,8 +1335,17 @@ LeftEspBox:AddLabel('MobEspColor'):AddColorPicker('MobEspColor', {
 	Transparency = 0,
 })
 
-AttachmentBox:AddSlider('AttachAngle', {
-	Text = 'Attach Angle',
+AttachmentBox:AddSlider('AttachLongitude', {
+	Text = 'Longitude',
+	Default = 0,
+	Min = 0,
+	Max = 360,
+	Rounding = 1,
+})
+
+
+AttachmentBox:AddSlider('AttachLatitude', {
+	Text = 'Latitude',
 	Default = 0,
 	Min = 0,
 	Max = 360,
@@ -1012,14 +1354,6 @@ AttachmentBox:AddSlider('AttachAngle', {
 
 AttachmentBox:AddSlider('AttachLength', {
 	Text = 'Attaching length',
-	Default = 0,
-	Min = -30,
-	Max = 30,
-	Rounding = 1,
-})
-
-AttachmentBox:AddSlider('AttachLengthY', {
-	Text = 'Attaching length Y',
 	Default = 12,
 	Min = -30,
 	Max = 30,
@@ -1057,6 +1391,18 @@ RightGroupBox:AddButton({
 	end,
 })
 
+LeftAPBox:AddSlider('ParryDelay', {
+	Text = 'Parry Delay',
+	Default = 10.8,
+	Min = 0,
+	Max = 500,
+	Rounding = 1,
+})
+LeftAPBox:AddToggle('PingAdjust', {
+	Text = 'Ping Adjust',
+	Default = true,
+})
+
 CreateToggle(MainMovementBox, "NoClip", {Text = "No Clip"})
 CreateToggle(MainMovementBox, "Fly", {Text = "Fly"})
 CreateToggle(MainMovementBox, "SpeedHack", {Text = "Speed Hack"})
@@ -1068,6 +1414,8 @@ CreateToggle(RightGroupBox, "PlayerNotifier", {Text = "Notify player join"}, tru
 CreateToggle(RightGroupBox, "TeleportDreamCube", {Text = "TP Dream Cubes", Tooltip = "Teleports to all the cubes in the dream world"}, true)
 CreateToggle(RightGroupBox, "TrinketPickup", {Text = "Pickup trinkets"}, true)
 CreateToggle(AttachmentBox, "AttachToEnemy", {Text = "Attach to closest entity"})
+CreateToggle(AttachmentBox, "LockOn", {Text = "Lock on to entity"})
+CreateToggle(LeftAPBox, "AutoParry", {Text = "Enable AutoParry"})
 
 RightGroupBox:AddButton({
 	Text = "Teleport to cache",
