@@ -1,10 +1,10 @@
 AutoShowGUI = true
 QueueOnTp = true
-queue_on_teleport("AutoShowGUI = false")
 
 MainCode = game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/Main")
 loadstring(MainCode)()
 
 if QueueOnTp then
+  queue_on_teleport("AutoShowGUI = false")
   queue_on_teleport(MainCode)
 end
