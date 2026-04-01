@@ -755,6 +755,8 @@ function HandleParry(entity)
 				local Ping = LocalPlayer:GetNetworkPing()
 				local Delay = Options.ParryDelay.Value/100
 				local HasToFace = tonumber(AnimationConfig.FacingDirection)
+				local TimePerStud = tonumber(AnimationConfig.TimePerStud)
+				local TimeEnd = tonumber(AnimationConfig.TimeEnd)
 
 				if Toggles.PingAdjust.Value then
 					Ping = LocalPlayer:GetNetworkPing()
@@ -768,9 +770,8 @@ function HandleParry(entity)
 				local conn
 				conn = RunService.RenderStepped:Connect(function(dt)
 					local progress = animationTrack.TimePosition 
-					if i >= 0.05 then
+					if progress >= TimeEnd then
 						conn:Disconnect()
-						return
 					end
 					
 					if not animationTrack.IsPlaying then
@@ -784,23 +785,21 @@ function HandleParry(entity)
 						Ping = 0
 					end
 					
-					if progress >= ParryTime-Ping then
+					local rootPosition = root.Position
+					local entityPosition = EntityRootPart.Position
+
+					if progress >= ParryTime-Ping+TimePerStud*(rootPosition-entityPosition).Magnitude then
 						if HasToFace then
 							local alignment = horizontalLookVector(root)
 								:Dot(horizontalLookVector(EntityRootPart))
 							if HasToFace > alignment then
-								i += dt
 								return
 							end
 						end
-						
-						local rootPosition = root.Position
-						local entityPosition = EntityRootPart.Position
 
 						local distanceXZ = (Vector2.new(rootPosition.X, rootPosition.Z) - Vector2.new(entityPosition.X, entityPosition.Z)).Magnitude
 						local distanceY = math.abs(rootPosition.Y - entityPosition.Y)
 						if distanceXZ > MaxDistance or distanceY > MaxDistanceY then
-							i += dt
 							return
 						end
 						
@@ -815,7 +814,13 @@ function HandleParry(entity)
 						conn:Disconnect()
 					end
 				end)
-
+				
+				local EndedConn 
+				EndedConn = animationTrack.Ended:Connect(function()
+					conn:Disconnect()
+					EndedConn:Disconnect()
+				end)
+				AutoParryMaid:Add(EndedConn)
 				AutoParryMaid:Add(conn)
 			else
 				AutoParryMaid:Remove(entity)
@@ -846,12 +851,14 @@ function EndAutoParry()
 	AutoParryMaid:Clean()
 end
 
-function FunctionSetApConfig(Group: string, Ids: string, WhenToParry: number, Distance: number, DistanceY: number, FacingDirection: number)
+function FunctionSetApConfig(Group: string, Ids: string, WhenToParry: number, Distance: number, DistanceY: number, FacingDirection: number, TimePerStud: number, TimeEnd: number)
 	ParryConfigs.Groups[Group] = {
 		WhenToParry = WhenToParry,
 		Distance = Distance,
 		DistanceY = DistanceY,
 		FacingDirection = FacingDirection,
+		TimePerStud = TimePerStud,
+		TimeEnd = TimeEnd,
 	}
 	
 	local ids = Ids:split(",")
@@ -886,7 +893,7 @@ function getValues(Inputs)
 	return unpack(values)
 end
 
-function CreateNewAPConfig(Group: string, Ids: string, WhenToParry: number, Distance: number, DistanceY: number, FacingDirection: number)
+function CreateNewAPConfig(Group: string, Ids: string, WhenToParry: number, Distance: number, DistanceY: number, FacingDirection: number, TimePerStud: number, TimeEnd: number)
 	if ConfigTabExisting[Group] and ParryConfigs.Group[Group] then
 		return
 	end
@@ -940,8 +947,26 @@ function CreateNewAPConfig(Group: string, Ids: string, WhenToParry: number, Dist
 			Text = "Ids (separate by comma)",
 		}
 	)
+	APConfigsBox:AddInput(`{Group}TimePerStud`, 
+		{
+			Default = TimePerStud,
+			Numeric = true,
+			Finished = true,
+			ClearTextOnFocus = false,
+			Text = "Extra Time Per Stud",
+		}
+	)
+	APConfigsBox:AddInput(`{Group}TimeEnd`, 
+		{
+			Default = TimeEnd,
+			Numeric = true,
+			Finished = true,
+			ClearTextOnFocus = false,
+			Text = "Hitbox End",
+		}
+	)
 	
-	local Inputs = {`{Group}Ids` , `{Group}WhenToParry`, `{Group}Distance`, `{Group}DistanceY`, `{Group}FacingDirection`}
+	local Inputs = {`{Group}Ids` , `{Group}WhenToParry`, `{Group}Distance`, `{Group}DistanceY`, `{Group}FacingDirection`, `{Group}TimePerStud`, `{Group}TimeEnd`}
 	
 	SaveManager:SetIgnoreIndexes(Inputs)
 
@@ -1441,8 +1466,8 @@ RightGroupBox:AddButton({
 LeftAPBox:AddSlider('ParryDelay', {
 	Text = 'Parry Delay',
 	Default = 10.8,
-	Min = 0,
-	Max = 500,
+	Min = -250,
+	Max = 250,
 	Rounding = 1,
 })
 LeftAPBox:AddToggle('PingAdjust', {
@@ -1476,6 +1501,7 @@ DestructiveAPConfigs:AddButton({
 	end,
 })
 
+
 DestructiveAPConfigs:AddInput('GroupName', 
 	{
 		Default = "",
@@ -1488,11 +1514,38 @@ DestructiveAPConfigs:AddInput('GroupName',
 DestructiveAPConfigs:AddButton({
 	Text = "Create Config",
 	Callback = function()
-		local values = {Options.GroupName.Value, "", 0, 0, 0, -1}
+		local values = {Options.GroupName.Value, "", 0, 0, 0, -1, 0, 0}
 		FunctionSetApConfig(unpack(values))
 		CreateNewAPConfig(unpack(values))
 	end,
 })
+
+DestructiveAPConfigs:AddInput(`ImportConfigs`, 
+	{
+		Default = "",
+		Numeric = false,
+		Finished = true,
+		ClearTextOnFocus = false,
+		Text = "Configs to import",
+	})
+
+DestructiveAPConfigs:AddButton({
+	Text = "Export Configs",
+	Callback = function()
+		setclipboard(HttpService:JSONEncode(ParryConfigs))
+	end,
+})
+
+
+DestructiveAPConfigs:AddButton({
+	Text = "Import Configs",
+	Callback = function()
+		local Config = Options.ImportConfigs.Value
+		writefile(CGFolder, Config)
+		ParryConfigs = HttpService:JSONDecode(Config)
+	end,
+})
+
 
 AISlop:AddButton({
 	Text = "Animation Visualizer",
@@ -1539,6 +1592,8 @@ for groupName, group in pairs(ParryConfigs.Groups) do
 	table.insert(settings, group.Distance)
 	table.insert(settings, group.DistanceY)
 	table.insert(settings, group.FacingDirection)
+	table.insert(settings, group.TimePerStud)
+	table.insert(settings, group.TimeEnd)
 	CreateNewAPConfig(unpack(settings))
 end
 
