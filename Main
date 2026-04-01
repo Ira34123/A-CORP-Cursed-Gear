@@ -656,7 +656,7 @@ end
 function getEntityClosestToCamera(AllyAllowed: boolean?, MobAllowed: boolean?)
 	local camera = workspace.CurrentCamera
 
-	local closestAngle, closestDistance = 0.35, 135
+	local closestAngle, closestDistance = 0, 5000
 	local closestEntity = nil
 	for _, obj in ipairs(workspace.Live:GetChildren()) do
 		if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
@@ -727,8 +727,6 @@ local function horizontalLookVector(root)
 end
 
 
-
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local AutoParryMaid = Maid.new()
 
@@ -1234,10 +1232,10 @@ local EnableFunctions = {
 		StartAttaching = function()
 			MainMaid:Remove("LockOnConn")
 			MainMaid.WaitingForEntity = task.spawn(function()
-				closestEnemy = getEntityClosestToCamera(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Valu)
+				closestEnemy = getEntityClosestToCamera(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value, Toggles.AttachToMobs.Value)
 				while not closestEnemy do
 					task.wait(1)
-					closestEnemy = getEntityClosestToCamera(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Valu)
+					closestEnemy = getEntityClosestToCamera(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value, Toggles.AttachToMobs.Value)
 					print(closestEnemy)
 				end
 				StartLockOn()
