@@ -733,6 +733,9 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local AutoParryMaid = Maid.new()
 
 function HandleParry(entity) 
+	if not entity then
+		return
+	end
 	AutoParryMaid[entity] = entity.Humanoid.Animator.AnimationPlayed:Connect(function(animationTrack)
 		local id = string.match(animationTrack.Animation.AnimationId, "%d+")
 		local AnimationConfig = ParryConfigs["Groups"][ParryConfigs.IDToGroup[id]]
@@ -845,6 +848,8 @@ function StartAutoParry()
 			if entity.Humanoid.Health > 0 then
 				HandleParry(entity)
 			end
+		else
+			HandleParry(entity:WaitForChild("Humanoid"):WaitForChild("Animator"))
 		end
 	end)
 end
