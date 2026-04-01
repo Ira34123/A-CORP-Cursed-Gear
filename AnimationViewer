@@ -1,0 +1,215 @@
+-- THIS IS FULLY MADE BY AI
+--////////////////////////////////////////////////////
+-- ANIMATION SPY - LocalScript
+-- Spies on LocalPlayer's Character Animator
+-- Shows unique played animations (Name + ID)
+-- Click any entry → setclipboard(AnimationId)
+-- No duplicates if same animation plays again
+--////////////////////////////////////////////////////
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+--////////////////////////////////////////////////////
+-- GUI ROOT
+--////////////////////////////////////////////////////
+local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local window = Instance.new("Frame")
+window.Size = UDim2.fromOffset(520, 420)
+window.Position = UDim2.fromScale(0.5, 0.5) - UDim2.fromOffset(260, 210)
+window.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+window.BorderSizePixel = 0
+window.Parent = gui
+
+--////////////////////////////////////////////////////
+-- TOP BAR
+--////////////////////////////////////////////////////
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 35)
+topBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+topBar.BorderSizePixel = 0
+topBar.Parent = window
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -90, 1, 0)
+title.Position = UDim2.fromOffset(15, 0)
+title.BackgroundTransparency = 1
+title.Text = "Animation Spy"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.fromOffset(35, 35)
+closeBtn.Position = UDim2.new(1, -35, 0, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 22
+closeBtn.Parent = topBar
+
+closeBtn.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
+
+-- Hover effect
+closeBtn.MouseEnter:Connect(function()
+	closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+end)
+closeBtn.MouseLeave:Connect(function()
+	closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+end)
+
+--////////////////////////////////////////////////////
+-- DRAG LOGIC
+--////////////////////////////////////////////////////
+do
+	local dragging = false
+	local dragStart
+	local startPos
+
+	topBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = window.Position
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = input.Position - dragStart
+			window.Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+		end
+	end)
+end
+
+--////////////////////////////////////////////////////
+-- SCROLLING LIST
+--////////////////////////////////////////////////////
+local scrolling = Instance.new("ScrollingFrame")
+scrolling.Size = UDim2.new(1, -20, 1, -55)
+scrolling.Position = UDim2.fromOffset(10, 45)
+scrolling.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+scrolling.BorderSizePixel = 0
+scrolling.ScrollBarThickness = 8
+scrolling.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
+scrolling.Parent = window
+
+local uiList = Instance.new("UIListLayout")
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+uiList.Padding = UDim.new(0, 4)
+uiList.Parent = scrolling
+
+-- Padding at top
+local topPadding = Instance.new("UIPadding")
+topPadding.PaddingTop = UDim.new(0, 6)
+topPadding.PaddingLeft = UDim.new(0, 6)
+topPadding.PaddingRight = UDim.new(0, 6)
+topPadding.Parent = scrolling
+
+--////////////////////////////////////////////////////
+-- SPY LOGIC
+--////////////////////////////////////////////////////
+local seen = {} -- AnimationId → true
+
+local function addToList(anim: Animation)
+	local id = anim.AnimationId
+	if seen[id] then return end -- no duplicates
+
+	seen[id] = true
+
+	local displayName = anim.Name
+	if displayName == "" or displayName == nil then
+		displayName = "Unnamed Animation"
+	end
+
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -12, 0, 42)
+	btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	btn.BorderSizePixel = 0
+	btn.Text = string.format("%s\nrbxassetid://%s", displayName, id:match("%d+"))
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.TextSize = 14
+	btn.Font = Enum.Font.SourceSans
+	btn.TextXAlignment = Enum.TextXAlignment.Left
+	btn.TextYAlignment = Enum.TextYAlignment.Center
+	btn.Parent = scrolling
+
+	-- Click = copy full AnimationId
+	btn.MouseButton1Click:Connect(function()
+		setclipboard(id)
+
+		-- Visual feedback
+		local originalColor = btn.BackgroundColor3
+		btn.BackgroundColor3 = Color3.fromRGB(0, 170, 100)
+		task.delay(0.15, function()
+			if btn and btn.Parent then
+				btn.BackgroundColor3 = originalColor
+			end
+		end)
+	end)
+
+	-- Auto scroll to bottom
+	scrolling.CanvasPosition = Vector2.new(0, scrolling.AbsoluteCanvasSize.Y)
+end
+
+local function setupAnimatorSpy(character: Model)
+	if not character then return end
+
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if not humanoid then return end
+
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = Instance.new("Animator")
+		animator.Parent = humanoid
+	end
+
+	animator.AnimationPlayed:Connect(function(track: AnimationTrack)
+		local anim = track.Animation
+		if anim and anim:IsA("Animation") and anim.AnimationId ~= "" then
+			addToList(anim)
+		end
+	end)
+end
+
+-- Start spying on current + future characters
+if player.Character then
+	setupAnimatorSpy(player.Character)
+end
+player.CharacterAdded:Connect(setupAnimatorSpy)
+
+-- Optional: small info label at bottom
+local info = Instance.new("TextLabel")
+info.Size = UDim2.new(1, -20, 0, 20)
+info.Position = UDim2.new(0, 10, 1, -25)
+info.BackgroundTransparency = 1
+info.Text = "Click any animation to copy its ID • Unique only"
+info.TextColor3 = Color3.fromRGB(160, 160, 160)
+info.Font = Enum.Font.SourceSans
+info.TextSize = 13
+info.TextXAlignment = Enum.TextXAlignment.Center
+info.Parent = window
