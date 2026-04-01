@@ -118,7 +118,7 @@ local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 local Options = Library.Options
 local Toggles = Library.Toggles
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/APConfigs")) -- ap configs
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/APConfigs"))() -- ap configs
 
 if getgenv().CGLibraryLoadedYay then
 	Library:Notify("Script already loaded.")
@@ -141,7 +141,7 @@ local Window = Library:CreateWindow({
 	-- Position and Size are also valid options here
 	-- but you do not need to define them unless you are changing them :)
 
-	Title = 'A-CORP/Cursed Gear',
+	Title = 'Kyria/Cursed Gear',
 	Center = true,
 	AutoShow = AutoShowGUI or false,
 	Resizable = true,
