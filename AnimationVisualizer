@@ -1,0 +1,391 @@
+--THIS IS FULLY MADE BY AI
+--////////////////////////////////////////////////////
+-- SERVICES
+--////////////////////////////////////////////////////
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local ContextActionService = game:GetService("ContextActionService")
+
+local player = Players.LocalPlayer
+
+--////////////////////////////////////////////////////
+-- GUI ROOT
+--////////////////////////////////////////////////////
+local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local window = Instance.new("Frame")
+window.Size = UDim2.fromOffset(620, 460)
+window.Position = UDim2.fromScale(0.5, 0.5) - UDim2.fromOffset(310, 230)
+window.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+window.BorderSizePixel = 0
+window.Parent = gui
+
+--////////////////////////////////////////////////////
+-- TOP BAR
+--////////////////////////////////////////////////////
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 30)
+topBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+topBar.BorderSizePixel = 0
+topBar.Parent = window
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -90, 1, 0)
+title.Position = UDim2.fromOffset(10, 0)
+title.BackgroundTransparency = 1
+title.Text = "Animation Visualizer"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.fromOffset(30, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 20
+closeBtn.Parent = topBar
+
+closeBtn.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
+
+closeBtn.MouseEnter:Connect(function()
+	closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+end)
+closeBtn.MouseLeave:Connect(function()
+	closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+end)
+
+--////////////////////////////////////////////////////
+-- DRAG LOGIC (Top Bar)
+--////////////////////////////////////////////////////
+do
+	local dragging = false
+	local dragStart
+	local startPos
+
+	topBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = window.Position
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = input.Position - dragStart
+			window.Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+		end
+	end)
+end
+
+--////////////////////////////////////////////////////
+-- VIEWPORT
+--////////////////////////////////////////////////////
+local viewport = Instance.new("ViewportFrame")
+viewport.Position = UDim2.fromOffset(10, 40)
+viewport.Size = UDim2.new(1, -20, 1, -140)
+viewport.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+viewport.BorderSizePixel = 0
+viewport.Parent = window
+
+local world = Instance.new("WorldModel")
+world.Parent = viewport
+
+--////////////////////////////////////////////////////
+-- CONTROLS + TIMELINE
+--////////////////////////////////////////////////////
+local controls = Instance.new("Frame")
+controls.Size = UDim2.new(1, -20, 0, 80)
+controls.Position = UDim2.new(0, 10, 1, -90)
+controls.BackgroundTransparency = 1
+controls.Parent = window
+
+local function makeButton(text, x)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.fromOffset(70, 30)
+	b.Position = UDim2.fromOffset(x, 0)
+	b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	b.Text = text
+	b.TextColor3 = Color3.new(1,1,1)
+	b.Font = Enum.Font.SourceSans
+	b.TextSize = 14
+	b.Parent = controls
+	return b
+end
+
+local playBtn = makeButton("Play", 0)
+local pauseBtn = makeButton("Pause", 80)
+local restartBtn = makeButton("Restart", 160)
+
+local speedBox = Instance.new("TextBox")
+speedBox.Size = UDim2.fromOffset(80, 30)
+speedBox.Position = UDim2.fromOffset(240, 0)
+speedBox.Text = "1"
+speedBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+speedBox.TextColor3 = Color3.new(1,1,1)
+speedBox.Parent = controls
+
+-- Animation ID Input
+local idLabel = Instance.new("TextLabel")
+idLabel.Size = UDim2.fromOffset(90, 30)
+idLabel.Position = UDim2.fromOffset(330, 0)
+idLabel.BackgroundTransparency = 1
+idLabel.Text = "Anim ID:"
+idLabel.TextColor3 = Color3.new(1,1,1)
+idLabel.Font = Enum.Font.SourceSans
+idLabel.TextSize = 14
+idLabel.TextXAlignment = Enum.TextXAlignment.Right
+idLabel.Parent = controls
+
+local animIdBox = Instance.new("TextBox")
+animIdBox.Size = UDim2.fromOffset(150, 30)
+animIdBox.Position = UDim2.fromOffset(425, 0)
+animIdBox.Text = "13336390868"
+animIdBox.PlaceholderText = "Enter animation ID (numbers only)"
+animIdBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+animIdBox.TextColor3 = Color3.new(1,1,1)
+animIdBox.Parent = controls
+
+-- Timeline Slider
+local slider = Instance.new("Frame")
+slider.Size = UDim2.new(1, 0, 0, 12)
+slider.Position = UDim2.new(0, 0, 1, -20)
+slider.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+slider.BorderSizePixel = 0
+slider.Parent = controls
+
+local timeLabel = Instance.new("TextLabel")
+timeLabel.Size = UDim2.new(1, 0, 0, 18)
+timeLabel.Position = UDim2.new(0, 0, 0, -20)
+timeLabel.BackgroundTransparency = 1
+timeLabel.TextColor3 = Color3.new(1,1,1)
+timeLabel.Font = Enum.Font.SourceSans
+timeLabel.TextSize = 14
+timeLabel.Text = "0.00s / 0.00s"
+timeLabel.Parent = slider
+
+local knob = Instance.new("Frame")
+knob.Size = UDim2.fromOffset(14, 14)
+knob.AnchorPoint = Vector2.new(0.5, 0.5)
+knob.BackgroundColor3 = Color3.new(1, 1, 1)
+knob.BorderSizePixel = 0
+knob.Parent = slider
+
+--////////////////////////////////////////////////////
+-- CREATE R6 DUMMY
+--////////////////////////////////////////////////////
+local desc = Instance.new("HumanoidDescription")
+local dummy = Players:CreateHumanoidModelFromDescriptionAsync(desc, Enum.HumanoidRigType.R6)
+dummy.Parent = world
+dummy:PivotTo(CFrame.new(0, 0, 0))
+
+local humanoid = dummy:WaitForChild("Humanoid")
+local root = dummy:WaitForChild("HumanoidRootPart")
+root.Anchored = true
+
+-- Grey smooth look
+for _, v in ipairs(dummy:GetDescendants()) do
+	if v:IsA("BasePart") then
+		v.Color = Color3.fromRGB(163, 162, 165)
+		v.Material = Enum.Material.SmoothPlastic
+	end
+end
+
+--////////////////////////////////////////////////////
+-- ANIMATION SYSTEM
+--////////////////////////////////////////////////////
+local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+local currentTrack = nil
+local currentAnimation = nil
+
+local function loadAnimation(animIdNumber: string)
+	-- Clean up old track
+	if currentTrack then
+		currentTrack:Stop()
+		currentTrack:Destroy()
+	end
+
+	local anim = Instance.new("Animation")
+	anim.AnimationId = "rbxassetid://" .. animIdNumber
+
+	currentAnimation = anim
+	currentTrack = animator:LoadAnimation(anim)
+	currentTrack.Looped = true
+	currentTrack:Play()
+	currentTrack:AdjustSpeed(tonumber(speedBox.Text) or 1)
+end
+
+-- Load initial animation
+loadAnimation("13336390868")
+
+--////////////////////////////////////////////////////
+-- CAMERA ORBIT
+--////////////////////////////////////////////////////
+local camera = Instance.new("Camera")
+camera.Parent = viewport
+viewport.CurrentCamera = camera
+
+local zoom = 8
+local yaw = 180
+local pitch = 15
+local camDragging = false
+local cursorInside = false
+local lastMousePos = nil
+
+viewport.MouseEnter:Connect(function() cursorInside = true end)
+viewport.MouseLeave:Connect(function() cursorInside = false end)
+
+viewport.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		camDragging = true
+		lastMousePos = UserInputService:GetMouseLocation()
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		camDragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if camDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local currentPos = UserInputService:GetMouseLocation()
+		local delta = currentPos - lastMousePos
+		lastMousePos = currentPos
+
+		yaw -= delta.X * 0.4
+		pitch -= delta.Y * 0.4
+		pitch = math.clamp(pitch, -85, 85)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if cursorInside and input.UserInputType == Enum.UserInputType.MouseWheel then
+		zoom -= input.Position.Z
+		zoom = math.clamp(zoom, 2, 25)
+	end
+end)
+
+ContextActionService:BindAction("BlockViewportZoom", function() return Enum.ContextActionResult.Sink end, false, Enum.UserInputType.MouseWheel)
+ContextActionService:BindAction("BlockViewportDrag", function() return Enum.ContextActionResult.Sink end, false, Enum.UserInputType.MouseMovement)
+
+--////////////////////////////////////////////////////
+-- SLIDER CONTROL
+--////////////////////////////////////////////////////
+local sliderDragging = false
+
+local function setSlider(mouseX)
+	local percent = math.clamp((mouseX - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+	knob.Position = UDim2.new(percent, 0, 0.5, 0)
+	if currentTrack and currentTrack.Length > 0 then
+		currentTrack.TimePosition = percent * currentTrack.Length
+	end
+end
+
+slider.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		sliderDragging = true
+		setSlider(input.Position.X)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		sliderDragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if sliderDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		setSlider(input.Position.X)
+	end
+end)
+
+--////////////////////////////////////////////////////
+-- BUTTONS & ID INPUT
+--////////////////////////////////////////////////////
+playBtn.MouseButton1Click:Connect(function()
+	if currentTrack then
+		currentTrack:AdjustSpeed(tonumber(speedBox.Text) or 1)
+	end
+end)
+
+pauseBtn.MouseButton1Click:Connect(function()
+	if currentTrack then
+		currentTrack:AdjustSpeed(0)
+	end
+end)
+
+restartBtn.MouseButton1Click:Connect(function()
+	if currentTrack then
+		currentTrack.TimePosition = 0
+	end
+end)
+
+speedBox.FocusLost:Connect(function()
+	if currentTrack then
+		local s = tonumber(speedBox.Text)
+		if s then
+			currentTrack:AdjustSpeed(s)
+		end
+	end
+end)
+
+-- Animation ID Input Handler
+local function tryLoadNewAnimation()
+	local text = animIdBox.Text:gsub("%D", "")  -- Remove anything that's not a digit
+	if text == "" then return end
+
+	animIdBox.Text = text  -- Clean the box to show only numbers
+	loadAnimation(text)
+end
+
+animIdBox.FocusLost:Connect(tryLoadNewAnimation)
+animIdBox.ReturnPressedFromOnScreenKeyboard:Connect(tryLoadNewAnimation)
+
+--////////////////////////////////////////////////////
+-- UPDATE LOOP
+--////////////////////////////////////////////////////
+RunService.RenderStepped:Connect(function()
+	-- Camera
+	local target = root.Position + Vector3.new(0, 1, 0)
+	local rotation = CFrame.Angles(0, math.rad(yaw), 0) * CFrame.Angles(math.rad(pitch), 0, 0)
+	local offset = rotation:VectorToWorldSpace(Vector3.new(0, 0, zoom))
+	camera.CFrame = CFrame.new(target + offset, target)
+
+	-- Update slider
+	if not sliderDragging and currentTrack and currentTrack.Length > 0 then
+		knob.Position = UDim2.new(currentTrack.TimePosition / currentTrack.Length, 0, 0.5, 0)
+	end
+
+	-- Update time label
+	if currentTrack and currentTrack.Length > 0 then
+		timeLabel.Text = string.format("%.2fs / %.2fs", currentTrack.TimePosition, currentTrack.Length)
+	else
+		timeLabel.Text = "0.00s / 0.00s"
+	end
+end)
