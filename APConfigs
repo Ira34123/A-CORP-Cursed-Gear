@@ -6,7 +6,7 @@ DefaultParryConfigs = {
 			WhenToParry = 0.2,
 			Distance = 8,
 			DistanceY = 9,
-			FacingDirection = -0.5,
+			FacingDirection = -1,
 		},
 		["FistCrit"] = {
 			WhenToParry = 0.43,
@@ -20,7 +20,7 @@ DefaultParryConfigs = {
 			WhenToParry = 0.22,
 			Distance = 9,
 			DistanceY = 9,
-			FacingDirection = -0.5,
+			FacingDirection = -1,
 		},
 		["SpearCrit"] = {
 			WhenToParry = 0.22,
@@ -33,7 +33,7 @@ DefaultParryConfigs = {
 			WhenToParry = 0.22,
 			Distance = 8,
 			DistanceY = 9,
-			FacingDirection = -0.5,
+			FacingDirection = -1,
 		},
 		["SwordCrit"] = {
 			WhenToParry = 0.41,
