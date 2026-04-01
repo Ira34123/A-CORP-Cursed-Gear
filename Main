@@ -118,7 +118,7 @@ local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 local Options = Library.Options
 local Toggles = Library.Toggles
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/APConfigs"))() -- ap configs
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/APConfigs")) -- ap configs
 
 if getgenv().CGLibraryLoadedYay then
 	Library:Notify("Script already loaded.")
