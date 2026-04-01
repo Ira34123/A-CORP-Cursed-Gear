@@ -792,7 +792,7 @@ function HandleParry(entity)
 						if HasToFace then
 							local alignment = horizontalLookVector(root)
 								:Dot(horizontalLookVector(EntityRootPart))
-							if HasToFace > alignment then
+							if HasToFace < alignment then
 								return
 							end
 						end
@@ -1641,7 +1641,7 @@ MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible,
 MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = false, Callback = function(Value) Library.ShowCustomCursor = Value end})
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
-MenuGroup:AddButton("Unload", function() Library:Unload() end)
+MenuGroup:AddButton("Unload", function() Library:Unload() end)	
 
 
 Library.ToggleKeybind = Options.MenuKeybind 
