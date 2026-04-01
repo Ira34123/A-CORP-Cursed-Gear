@@ -790,9 +790,11 @@ function HandleParry(entity)
 
 					if progress >= ParryTime-Ping+TimePerStud*(rootPosition-entityPosition).Magnitude then
 						if HasToFace then
-							local alignment = horizontalLookVector(root)
-								:Dot(horizontalLookVector(EntityRootPart))
-							if HasToFace < alignment then
+							local toPlayer = (root.Position - EntityRootPart.Position).Unit
+							local enemyLook = horizontalLookVector(EntityRootPart)
+							local alignment = enemyLook:Dot(toPlayer)
+
+							if HasToFace < alignment  then
 								return
 							end
 						end
@@ -902,7 +904,7 @@ function CreateNewAPConfig(Group: string, Ids: string, WhenToParry: number, Dist
 	end
 	
 	APConfigsBox:AddDivider()
-	APConfigsBox:AddLabel(Group)
+	APConfigsBox:AddLabel(`<font color="rgb(255, 0, 0)">{Group}</font>`)
 	APConfigsBox:AddInput(`{Group}WhenToParry`, 
 	{
 		Default = WhenToParry,
