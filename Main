@@ -118,6 +118,8 @@ local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 local Options = Library.Options
 local Toggles = Library.Toggles
 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/APConfigs"))() -- ap configs
+
 if getgenv().CGLibraryLoadedYay then
 	Library:Notify("Script already loaded.")
 	task.wait(13)
@@ -163,6 +165,9 @@ local RightGroupBox = Tabs.Main:AddRightGroupbox('Placeholder')
 local LeftEspBox = Tabs.EspTab:AddLeftGroupbox('ESP')
 local AttachmentBox = Tabs.Main:AddLeftGroupbox('Attach')
 local LeftAPBox = Tabs.APTab:AddLeftGroupbox('AP')
+local APConfigsBox = Tabs.APTab:AddRightGroupbox('AP CONFIGS')
+local DestructiveAPConfigs = Tabs.APTab:AddLeftGroupbox('Edit AP Configs')
+local AISlop = Tabs.APTab:AddLeftGroupbox('AI Slop')
 
 -- Constants
 local Players = game:GetService("Players")
@@ -170,6 +175,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local HttpService = game:GetService("HttpService")
 
 
 local BASE_SIZEX = 8
@@ -180,6 +186,8 @@ local isGaia = game.PlaceId == 5208655184;
 local LocalPlayer = Players.LocalPlayer
 local PlayerCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local camera = workspace.CurrentCamera
+
+local CGFolder = "CGCursedGearAPConfigs.json"
 
 local MainMaid = Maid.new()
 MainMaid:Add(
@@ -573,10 +581,17 @@ function UpdateAttachToEntity(entity: Model)
 
 	return true
 end
-function getClosestEntity(AllyAllowed: boolean?, PlayerAllowed: boolean?): Model?
+function getClosestEntity(AllyAllowed: boolean?, PlayerAllowed: boolean?, MobsAllowed: boolean?): Model?
 	local closestEnemy, closestDistance = nil, math.huge
 	for _, obj in ipairs(workspace.Live:GetChildren()) do
-		if not PlayerAllowed and (obj == PlayerCharacter or Players:GetPlayerFromCharacter(obj)) or obj == PlayerCharacter then
+		
+		local IsPlayer = Players:GetPlayerFromCharacter(obj)
+		
+		if (not PlayerAllowed and IsPlayer) or obj == PlayerCharacter then
+			continue
+		end
+		
+		if not MobsAllowed and not IsPlayer then
 			continue
 		end
 
@@ -675,153 +690,39 @@ end
 
 --------
 
+local ParryConfigs = isfile(CGFolder)
+if ParryConfigs then
+	ParryConfigs = HttpService:JSONDecode(readfile(CGFolder))
 
-local ParryConfigs = {
-	["rbxassetid://13401152492"] = {
-		WhenToParry = 0.2,
-		Distance = 8,
-		HasToFace = 0.5,
-		Anim = "Fist1"
-	},
-	["rbxassetid://13401160357"] = {
-		WhenToParry = 0.2,
-		Distance = 8,
-		HasToFace = 0.5,
-		Anim = "Fist2"
+	if not ParryConfigs or not ParryConfigs["Groups"] or not ParryConfigs["IDToGroup"] then
+		ParryConfigs = DefaultParryConfigs
+		Library:Notify('Failed to read ap config file, using default config')
+	else
+		for groupName, group in pairs(DefaultParryConfigs.Groups) do
+			if not ParryConfigs.Groups[groupName] then
+				for animID, GroupID in pairs(DefaultParryConfigs.IDToGroup) do
+					if GroupID == groupName then
+						if not ParryConfigs.IDToGroup[animID] then
+							ParryConfigs.IDToGroup[animID] = groupName
+							ParryConfigs.Groups[groupName] = group
+						end
+					end
+				end
+			end
+		end
+	end
+else
+	ParryConfigs = DefaultParryConfigs
+end
 
-	},
-	["rbxassetid://13401154871"] = {
-		WhenToParry = 0.2,
-		Distance = 8,
-		HasToFace = 0,
-		Anim = "Fist3"
-
-	},
-	["rbxassetid://1340115708"] = {
-		WhenToParry = 0.2,
-		Distance = 8,
-		HasToFace = 0,
-		Anim = "Fist4"
-
-	},
-	["rbxassetid://13999191009"] = {
-		WhenToParry = 0.2,
-		Distance = 11,
-		HasToFace = 0,
-		Anim = "FistRunning"
-	},
-	["rbxassetid://13781915317"] = {
-		WhenToParry = 0.43,
-		Distance = 10,
-		Anim = "FistCrit"
-	},
-	["rbxassetid://15323341659"] = {
-		WhenToParry = 0.22,
-		Distance = 10,
-		Anim = "SpearCrit"
-	},
-	["rbxassetid://15319543609"] = {
-		WhenToParry = 0.22,
-		Distance = 9,
-		HasToFace = 0,
-		Anim = "Spear1"
-	},
-	["rbxassetid://15319553487"] = {
-		WhenToParry = 0.22,
-		Distance = 9,
-		HasToFace = 0,
-		Anim = "Spear2"
-	},
-	["rbxassetid://15319570510"] = {
-		WhenToParry = 0.22,
-		Distance = 9,
-		HasToFace = 0,
-		Anim = "Spear3"
-	},
-	["rbxassetid://15319575789"] = {
-		WhenToParry = 0.22,
-		Distance = 9,
-		HasToFace = 0,
-		Anim = "Spear4"
-	},
-	["rbxassetid://153232186955"] = {
-		WhenToParry = 0.22,
-		Distance = 11,
-		HasToFace = 0,
-		Anim = "SpearRunning"
-	},
-	["rbxassetid://139578511247534"] = {
-		WhenToParry = 0.22,
-		Distance = 8	,
-		HasToFace = 0,
-		Anim = "TwoSword1"
-	},
-	["rbxassetid://708612799294680"] = {
-		WhenToParry = 0.22,
-		Distance = 8,
-		HasToFace = 0,
-		Anim = "TwoSword2"
-	},
-	["rbxassetid://121372725455349"] = {
-		WhenToParry = 0.22,
-		Distance = 8,
-		HasToFace = 0,
-		Anim = "TwoSword3"
-	},
-	["rbxassetid://95680227625811"] = {
-		WhenToParry = 0.22,
-		Distance = 8,
-		HasToFace = 0,
-		Anim = "TwoSword4"
-	},
-	["rbxassetid://103112625386223"] = {
-		WhenToParry = 0.32,
-		Distance = 9,
-		HasToFace = 0,
-		Anim = "TwoSwordRunning"
-	},
-	["rbxassetid://13201752394"] = {
-		WhenToParry = 0.2,
-		Distance = 8,
-		HasToFace = 0,
-		Anim = "OneSword1"
-	},
-	["rbxassetid://13201762170"] = {
-		WhenToParry = 0.17,
-		Distance = 8,
-		HasToFace = 0,
-		Anim = "OneSword2"
-	},
-	["rbxassetid://13201768794"] = {
-		WhenToParry = 0.25,
-		Distance = 8,
-		HasToFace = 0,
-		Anim = "OneSword3"
-	},
-	["rbxassetid://13201772943"] = {
-		WhenToParry = 0.2,
-		Distance = 8,
-		HasToFace = 0,
-		Anim = "OneSword4"
-	},
-	["rbxassetid://13191761678"] = {
-		WhenToParry = 0.34,
-		Distance = 9,
-		HasToFace = 0,
-		Anim = "OneSwordRunning"
-	},
-	["rbxassetid://13336390868"] = {
-		WhenToParry = 0.41,
-		Distance = 11,
-		Anim = "SwordCrit"
-	},
+local ConfigTabExisting = {
+	
 }
-
 --------
 
 local function horizontalLookVector(root)
 	local look = root.CFrame.LookVector
-	look = Vector3.new(look.X, 0, look.Z).Unit
+	look = Vector3.new(look.X, 0, look.Z).Unit	
 	return look
 end
 
@@ -833,9 +734,11 @@ local AutoParryMaid = Maid.new()
 
 function HandleParry(entity) 
 	AutoParryMaid[entity] = entity.Humanoid.Animator.AnimationPlayed:Connect(function(animationTrack)
-		local AnimationConfig = ParryConfigs[animationTrack.Animation.AnimationId]
+		local id = string.match(animationTrack.Animation.AnimationId, "%d+")
+		local AnimationConfig = ParryConfigs["Groups"][ParryConfigs.IDToGroup[id]]
 		if AnimationConfig then
-			local MaxDistance = AnimationConfig.Distance * 1.5
+			local MaxDistance = tonumber(AnimationConfig.Distance) 
+			local MaxDistanceY = tonumber(AnimationConfig.DistanceY)
 			local EntityRootPart = entity and entity:FindFirstChild("HumanoidRootPart")
 			local EntityHumanoid = entity and entity:FindFirstChild("Humanoid")
 			local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
@@ -843,48 +746,72 @@ function HandleParry(entity)
 				return
 			end
 			if EntityRootPart and EntityHumanoid then
-				local distance = (root.Position - EntityRootPart.Position).Magnitude
-				if distance > MaxDistance then
+				local distance = (root.Position - EntityRootPart.Position).Magnitude / 2
+				if distance > MaxDistance and distance > MaxDistanceY then
 					return
 				end
 
-				local Time = AnimationConfig.WhenToParry
+				local Time = tonumber(AnimationConfig.WhenToParry)
 				local Ping = LocalPlayer:GetNetworkPing()
 				local Delay = Options.ParryDelay.Value/100
-				local HasToFace = AnimationConfig.HasToFace 
-				
+				local HasToFace = tonumber(AnimationConfig.FacingDirection)
+
 				if Toggles.PingAdjust.Value then
 					Ping = LocalPlayer:GetNetworkPing()
 				else
 					Ping = 0
 				end
 
-				local ParryPercentage = (Time-Ping-Delay)/animationTrack.Length
-				
+				local ParryTime = Time-Ping
+
 				local i = 0
 				local conn
-				conn = RunService.RenderStepped:Connect(function()
-					local progress = animationTrack.TimePosition / animationTrack.Length
-					if i == 50 then
+				conn = RunService.RenderStepped:Connect(function(dt)
+					local progress = animationTrack.TimePosition 
+					if i >= 0.05 then
 						conn:Disconnect()
 						return
 					end
-					if progress >= ParryPercentage then
-						--if HasToFace then
-						--	local alignment = horizontalLookVector(root)
-						--		:Dot(horizontalLookVector(EntityRootPart))
-						--	if HasToFace > alignment then
-						--		i += 1
-						--		return
-						--	end
-						--end
+					
+					if not animationTrack.IsPlaying then
+						conn:Disconnect()
+						return
+					end
+					
+					if Toggles.PingAdjust.Value then
+						Ping = LocalPlayer:GetNetworkPing()
+					else
+						Ping = 0
+					end
+					
+					if progress >= ParryTime-Ping then
+						if HasToFace then
+							local alignment = horizontalLookVector(root)
+								:Dot(horizontalLookVector(EntityRootPart))
+							if HasToFace > alignment then
+								i += dt
+								return
+							end
+						end
+						
+						local rootPosition = root.Position
+						local entityPosition = EntityRootPart.Position
+
+						local distanceXZ = (Vector2.new(rootPosition.X, rootPosition.Z) - Vector2.new(entityPosition.X, entityPosition.Z)).Magnitude
+						local distanceY = math.abs(rootPosition.Y - entityPosition.Y)
+						if distanceXZ > MaxDistance or distanceY > MaxDistanceY then
+							i += dt
+							return
+						end
+						
 						task.spawn(function()
-							for i = 1, 3 do 
+							for i = 1, 5 do
 								VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
 								task.wait(0.05)
 								VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
 							end
 						end)
+
 						conn:Disconnect()
 					end
 				end)
@@ -917,6 +844,114 @@ end
 
 function EndAutoParry()
 	AutoParryMaid:Clean()
+end
+
+function FunctionSetApConfig(Group: string, Ids: string, WhenToParry: number, Distance: number, DistanceY: number, FacingDirection: number)
+	ParryConfigs.Groups[Group] = {
+		WhenToParry = WhenToParry,
+		Distance = Distance,
+		DistanceY = DistanceY,
+		FacingDirection = FacingDirection,
+	}
+	
+	local ids = Ids:split(",")
+	for _, id in ipairs(ids) do
+		ParryConfigs.IDToGroup[id] = Group
+	end
+	
+	writefile(CGFolder, HttpService:JSONEncode(ParryConfigs))
+end
+
+function DeleteApConfig(Group: string)
+	if not Group or not ParryConfigs.Groups[Group] then
+		return
+	end
+	ParryConfigs.Groups[Group] = nil
+	for id, group in pairs(ParryConfigs.IDToGroup) do
+		if group == Group then
+			ParryConfigs.IDToGroup[id] = nil
+		end
+	end
+	EndAutoParry()
+	writefile(CGFolder, HttpService:JSONEncode(ParryConfigs))
+end
+
+function getValues(Inputs)
+	local values = {}
+	for key, value in ipairs(Inputs) do
+		if Options[value] then
+			table.insert(values, Options[value].Value)
+		end
+	end
+	return unpack(values)
+end
+
+function CreateNewAPConfig(Group: string, Ids: string, WhenToParry: number, Distance: number, DistanceY: number, FacingDirection: number)
+	if ConfigTabExisting[Group] and ParryConfigs.Group[Group] then
+		return
+	end
+	if Group == "" then
+		return
+	end
+	
+	APConfigsBox:AddDivider()
+	APConfigsBox:AddLabel(Group)
+	APConfigsBox:AddInput(`{Group}WhenToParry`, 
+	{
+		Default = WhenToParry,
+		Numeric = true,
+		Finished = true,
+		ClearTextOnFocus = false,
+		Text = "Parry Timing",
+	})
+	APConfigsBox:AddInput(`{Group}Distance`, 
+		{
+			Default = Distance,
+			Numeric = true,
+			Finished = true,
+			ClearTextOnFocus = false,
+			Text = "Distance",
+		}
+	)
+	APConfigsBox:AddInput(`{Group}DistanceY`, 
+		{
+			Default = DistanceY,
+			Numeric = true,
+			Finished = true,
+			ClearTextOnFocus = false,
+			Text = "DistanceYValue",
+		}
+	)
+	APConfigsBox:AddInput(`{Group}FacingDirection`, 
+		{
+			Default = FacingDirection,
+			Numeric = true,
+			Finished = true,
+			ClearTextOnFocus = false,
+			Text = "Facing Direction",
+		}
+	)
+	APConfigsBox:AddInput(`{Group}Ids`, 
+		{
+			Default = Ids,
+			Numeric = false,
+			Finished = true,
+			ClearTextOnFocus = false,
+			Text = "Ids (separate by comma)",
+		}
+	)
+	
+	local Inputs = {`{Group}Ids` , `{Group}WhenToParry`, `{Group}Distance`, `{Group}DistanceY`, `{Group}FacingDirection`}
+	
+	SaveManager:SetIgnoreIndexes(Inputs)
+
+	for _, input in ipairs(Inputs) do
+		Options[input]:OnChanged(function()
+			FunctionSetApConfig(Group, getValues(Inputs))
+		end)
+	end
+	
+	ConfigTabExisting[Group] = true
 end
 
 --------------------------------
@@ -1121,11 +1156,11 @@ local EnableFunctions = {
 
 		StartAttaching = function()
 			MainMaid:Remove("AttachToEnemy")
-			closestEnemy = getClosestEntity(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value)
+			closestEnemy = getClosestEntity(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value, Toggles.AttachToMobs.Value)
 			MainMaid.WaitingForAttach = task.spawn(function()
 				while not closestEnemy do
 					task.wait(1)
-					closestEnemy = getClosestEntity(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value)
+					closestEnemy = getClosestEntity(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value, Toggles.AttachToMobs.Value)
 				end
 				AttachToEnemy()
 			end)
@@ -1148,6 +1183,17 @@ local EnableFunctions = {
 				if not root or not hum or hum.Health <= 0 then
 					StartAttaching()
 				else
+					local plrRoot = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+					if not plrRoot then
+						return
+					end
+					
+					local plrPos = plrRoot.Position
+					local enemyPos = root.Position
+					local distance = (Vector2.new(plrPos.X, plrPos.Z) - Vector2.new(enemyPos.X, enemyPos.Z)).Magnitude
+					if distance <= Options.LockOnDistance.Value then
+						return
+					end
 					UpdateCameraLookAt(root.Position)
 				end
 			end)
@@ -1362,6 +1408,7 @@ AttachmentBox:AddSlider('AttachLength', {
 
 AttachmentBox:AddToggle("AttachToAllies", {Text = "Attach to Allies", Tooltip = "Allies include civilians", Default = false})
 AttachmentBox:AddToggle("AttachToPlayers", {Text = "Attach to Players", Default = false})
+AttachmentBox:AddToggle("AttachToMobs", {Text = "Attach to Mobs", Default = true})
 
 local exits = getAllExits()
 local DropValues = {}
@@ -1403,6 +1450,66 @@ LeftAPBox:AddToggle('PingAdjust', {
 	Default = true,
 })
 
+DestructiveAPConfigs:AddLabel("You have to reload the script for\nmost of these to take visible effect.")
+
+DestructiveAPConfigs:AddButton({
+	Text = "Reset to default configs",
+	Callback = function()
+		delfile(CGFolder)
+		ParryConfigs = DefaultParryConfigs
+		setclipboard(HttpService:JSONEncode(ParryConfigs))
+	end,
+})
+
+DestructiveAPConfigs:AddInput(`ConfigToDestroy`, 
+	{
+		Default = "",
+		Numeric = false,
+		Finished = true,
+		ClearTextOnFocus = false,
+		Text = "Config to destroy",
+	})
+DestructiveAPConfigs:AddButton({
+	Text = "Destroy config",
+	Callback = function()
+		DeleteApConfig(Options.ConfigToDestroy.Value)
+	end,
+})
+
+DestructiveAPConfigs:AddInput('GroupName', 
+	{
+		Default = "",
+		Numeric = false,
+		Finished = true,
+		ClearTextOnFocus = false,
+		Text = "Config to add",
+	})
+
+DestructiveAPConfigs:AddButton({
+	Text = "Create Config",
+	Callback = function()
+		local values = {Options.GroupName.Value, "", 0, 0, 0, -1}
+		FunctionSetApConfig(unpack(values))
+		CreateNewAPConfig(unpack(values))
+	end,
+})
+
+AISlop:AddButton({
+	Text = "Animation Visualizer",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/AnimationVisualizer"))()
+	end,
+})
+
+AISlop:AddButton({
+	Text = "Animation Spy",
+	Tooltip = "Shows all animations your character plays\nDoesnt show same twice",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/AnimationViewer"))()
+	end,
+})
+
+
 CreateToggle(MainMovementBox, "NoClip", {Text = "No Clip"})
 CreateToggle(MainMovementBox, "Fly", {Text = "Fly"})
 CreateToggle(MainMovementBox, "SpeedHack", {Text = "Speed Hack"})
@@ -1416,6 +1523,24 @@ CreateToggle(RightGroupBox, "TrinketPickup", {Text = "Pickup trinkets"}, true)
 CreateToggle(AttachmentBox, "AttachToEnemy", {Text = "Attach to closest entity"})
 CreateToggle(AttachmentBox, "LockOn", {Text = "Lock on to entity"})
 CreateToggle(LeftAPBox, "AutoParry", {Text = "Enable AutoParry"})
+
+AttachmentBox:AddSlider("LockOnDistance", {Text = "Lock On Min Distance", Tooltip = "Minimum distance to start tracking\nUsed to stop spinning like crazy up close", Default = 1, Min = 0, Max = 10, Rounding = 1})
+
+for groupName, group in pairs(ParryConfigs.Groups) do
+	local settings = {groupName}
+	local ids = {}
+	for id, groupId in pairs(ParryConfigs.IDToGroup) do
+		if groupId == groupName then
+			table.insert(ids, id)
+		end
+	end
+	table.insert(settings, table.concat(ids, ","))
+	table.insert(settings, group.WhenToParry)
+	table.insert(settings, group.Distance)
+	table.insert(settings, group.DistanceY)
+	table.insert(settings, group.FacingDirection)
+	CreateNewAPConfig(unpack(settings))
+end
 
 RightGroupBox:AddButton({
 	Text = "Teleport to cache",
