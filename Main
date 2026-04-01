@@ -794,7 +794,7 @@ function HandleParry(entity)
 							local enemyLook = horizontalLookVector(EntityRootPart)
 							local alignment = enemyLook:Dot(toPlayer)
 
-							if HasToFace < alignment  then
+							if HasToFace > alignment  then
 								return
 							end
 						end
