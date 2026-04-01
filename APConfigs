@@ -14,7 +14,7 @@ DefaultParryConfigs = {
 			WhenToParry = 0.43,
 			Distance = 15,
 			DistanceY = 15,
-			FacingDirection = -1
+			FacingDirection = -1,
 			TimePerStud = 0.01,
 			TimeEnd = 0.6,
 		},
