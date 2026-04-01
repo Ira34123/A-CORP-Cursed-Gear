@@ -7,12 +7,16 @@ DefaultParryConfigs = {
 			Distance = 8,
 			DistanceY = 9,
 			FacingDirection = -1,
+			TimePerStud = 0,
+			TimeEnd = 0.25,
 		},
 		["FistCrit"] = {
 			WhenToParry = 0.43,
 			Distance = 15,
 			DistanceY = 15,
 			FacingDirection = -1
+			TimePerStud = 0.01,
+			TimeEnd = 0.6,
 		},
 
 		--SPEAR
@@ -21,12 +25,16 @@ DefaultParryConfigs = {
 			Distance = 9,
 			DistanceY = 9,
 			FacingDirection = -1,
+			TimePerStud = 0,
+			TimeEnd = 0.27,
 		},
 		["SpearCrit"] = {
 			WhenToParry = 0.22,
 			Distance = 15,
 			DistanceY = 15,
 			FacingDirection = -1,
+			TimePerStud = 0.01,
+			TimeEnd = 0.4,
 		},
 		-- SWORD
 		["SwordM1"] = {
@@ -34,12 +42,16 @@ DefaultParryConfigs = {
 			Distance = 8,
 			DistanceY = 9,
 			FacingDirection = -1,
+			TimePerStud = 0,
+			TimeEnd = 0.27,
 		},
 		["SwordCrit"] = {
 			WhenToParry = 0.41,
 			Distance = 15,
 			DistanceY = 15,
 			FacingDirection = -1,
+			TimePerStud = 0.01,
+			TimeEnd = 0.6,
 		},
 		
 	},
