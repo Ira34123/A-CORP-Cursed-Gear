@@ -1,93 +1,92 @@
-
 DefaultParryConfigs = {
-	Groups = {
-		--FIST
-		["FistM1"] = {
-			WhenToParry = 0.2,
-			Distance = 8,
-			DistanceY = 9,
-			FacingDirection = -1,
-			TimePerStud = 0,
-			TimeEnd = 0.25,
-			TimeToDistanceDelay = 0,
-		},
-		["FistCrit"] = {
-			WhenToParry = 0.43,
-			Distance = 15,
-			DistanceY = 15,
-			FacingDirection = -1,
-			TimePerStud = 0.01,
-			TimeEnd = 0.6,
-			TimeToDistanceDelay = 0,
-		},
-
-		--SPEAR
-		["SpearM1"] = {
-			WhenToParry = 0.22,
-			Distance = 9,
-			DistanceY = 9,
-			FacingDirection = -1,
-			TimePerStud = 0,
-			TimeEnd = 0.27,
-			TimeToDistanceDelay = 0,
-		},
-		["SpearCrit"] = {
-			WhenToParry = 0.22,
-			Distance = 15,
-			DistanceY = 15,
-			FacingDirection = -1,
-			TimePerStud = 0.01,
-			TimeEnd = 0.4,
-			TimeToDistanceDelay = 0,
-		},
-		-- SWORD
-		["SwordM1"] = {
-			WhenToParry = 0.22,
-			Distance = 8,
-			DistanceY = 9,
-			FacingDirection = -1,
-			TimePerStud = 0,
-			TimeEnd = 0.27,
-			TimeToDistanceDelay = 0,
-		},
-		["SwordCrit"] = {
-			WhenToParry = 0.41,
-			Distance = 15,
-			DistanceY = 15,
-			FacingDirection = -1,
-			TimePerStud = 0.01,
-			TimeEnd = 0.6,
-			TimeToDistanceDelay = 0,
-		},
-		
-	},
-	
-	IDToGroup = {
-		--FIST
-		["13401152492"] = "FistM1", --1
-		["13401160357"] = "FistM1", --2
-		["13401154871"] = "FistM1", --3
-		["1340115708"] = "FistM1", --4
-		["13999191009"] = "FistM1", -- RUNNING
-		["13781915317"] = "FistCrit", --CRIT
-		--SPEAR
-		["15323341659"] = "SpearCrit", --CRIT
-		["15319543609"] = "SpearM1", --1
-		["15319553487"] = "SpearM1", --2
-		["15319570510"] = "SpearM1", --3
-		["15319575789"] = "SpearM1", --4
-		["153232186955"] = "SpearM1", --RUNNING
-		-- SWORD
-		["139578511247534"] = "SwordM1", -- TwoHanded1
-		["708612799294680"] = "SwordM1", -- TwoHanded2
-		["121372725455349"] = "SwordM1", -- TwoHanded3
-		["95680227625811"] = "SwordM1", -- TwoHanded4
-		["103112625386223"] = "SwordM1", --TwoHandedRunning
-		["13201752394"] = "SwordM1", --OneHanded1
-		["13201762170"] = "SwordM1", --OneHanded2
-		["13201768794"] = "SwordM1", --OneHanded3
-		["13201772943"] = "SwordM1", --OneHanded4
-		["13336390868"] = "SwordCrit", --CRIT
-		["13191761678"] = "SwordM1", --RUNNING
-	}
+    Groups = {
+        FistCrit = {
+            FacingDirection = -1,
+            TimeEnd = 0.6,
+            DistanceY = 15,
+            TimeToDistanceDelay = 0,
+            TimePerStud = 0.01,
+            Distance = 20,
+            WhenToParry = 0.43,
+        },
+        SpearCrit = {
+            FacingDirection = -1,
+            TimeEnd = 0.4,
+            DistanceY = 15,
+            TimeToDistanceDelay = 0,
+            TimePerStud = 0.01,
+            Distance = 15,
+            WhenToParry = 0.22,
+        },
+        FistM1 = {
+            FacingDirection = -1,
+            TimeEnd = 0.3,
+            DistanceY = 9,
+            TimeToDistanceDelay = 0,
+            TimePerStud = 0,
+            Distance = 10,
+            WhenToParry = 0.2,
+        },
+        SwordM1 = {
+            FacingDirection = -1,
+            TimeEnd = 0.27,
+            DistanceY = 9,
+            TimeToDistanceDelay = 0,
+            TimePerStud = 0,
+            Distance = 8,
+            WhenToParry = 0.22,
+        },
+        RunningM1 = {
+            FacingDirection = -1,
+            TimeEnd = 0.3,
+            DistanceY = 15,
+            TimeToDistanceDelay = 0,
+            TimePerStud = 0,
+            Distance = 20,
+            WhenToParry = 0.2,
+        },
+        SpearM1 = {
+            FacingDirection = -1,
+            TimeEnd = 0.27,
+            DistanceY = 9,
+            TimeToDistanceDelay = 0,
+            TimePerStud = 0,
+            Distance = 9,
+            WhenToParry = 0.22,
+        },
+        SwordCrit = {
+            FacingDirection = -1,
+            TimeEnd = 0.6,
+            DistanceY = 15,
+            TimeToDistanceDelay = 0,
+            TimePerStud = 0.01,
+            Distance = 15,
+            WhenToParry = 0.41,
+        },
+    },
+    IDToGroup = {
+        ["13401160357"] = "FistM1",
+        ["15319543609"] = "SpearM1",
+        ["13191761678"] = "SwordM1",
+        ["708612799294680"] = "SwordM1",
+        ["139578511247534"] = "SwordM1",
+        ["103112625386223"] = "SwordM1",
+        ["15323341659"] = "SpearCrit",
+        ["13201752394"] = "SwordM1",
+        ["95680227625811"] = "SwordM1",
+        ["13201772943"] = "SwordM1",
+        ["13401152492"] = "FistM1",
+        ["153232186955"] = "SpearM1",
+        ["13201762170"] = "SwordM1",
+        ["13201768794"] = "SwordM1",
+        ["13781915317"] = "FistCrit",
+        ["15319553487"] = "SpearM1",
+        ["13401154871"] = "FistM1",
+        ["121372725455349"] = "SwordM1",
+        ["13999191009"] = "RunningM1",
+        ["13336390868"] = "SwordCrit",
+        ["1340115708"] = "FistM1",
+        ["15319575789"] = "SpearM1",
+        ["15319570510"] = "SpearM1",
+    },
 }
