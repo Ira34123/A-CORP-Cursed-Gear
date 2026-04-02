@@ -730,111 +730,97 @@ end
 
 local AutoParryMaid = Maid.new()
 
-function HandleParry(entity) 
-	if not entity then
-		return
-	end
+function HandleParry(entity)
+	if not entity then return end
+
 	AutoParryMaid[entity] = entity.Humanoid.Animator.AnimationPlayed:Connect(function(animationTrack)
 		local id = string.match(animationTrack.Animation.AnimationId, "%d+")
 		local AnimationConfig = ParryConfigs["Groups"][ParryConfigs.IDToGroup[id]]
-		if AnimationConfig then
-			local MaxDistance = tonumber(AnimationConfig.Distance) 
-			local MaxDistanceY = tonumber(AnimationConfig.DistanceY)
-			local EntityRootPart = entity and entity:FindFirstChild("HumanoidRootPart")
-			local EntityHumanoid = entity and entity:FindFirstChild("Humanoid")
-			local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
-			if not root then
+
+		if not AnimationConfig then return end
+
+		local MaxDistance = tonumber(AnimationConfig.Distance) or 0
+		local MaxDistanceY = tonumber(AnimationConfig.DistanceY) or 0
+		local Time = tonumber(AnimationConfig.WhenToParry) or 0
+		local HasToFace = tonumber(AnimationConfig.FacingDirection) or 0
+		local TimePerStud = tonumber(AnimationConfig.TimePerStud) or 0
+		local TimeEnd = tonumber(AnimationConfig.TimeEnd) or 1
+		local MinimumDistance = tonumber(AnimationConfig.TimeToDistanceDelay) or 0
+
+		local EntityRootPart = entity:FindFirstChild("HumanoidRootPart")
+		local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
+
+		if not (EntityRootPart and root) then return end
+
+		local initialDistXZ = (Vector2.new(root.Position.X, root.Position.Z) - Vector2.new(EntityRootPart.Position.X, EntityRootPart.Position.Z)).Magnitude
+		local initialDistY = math.abs(root.Position.Y - EntityRootPart.Position.Y)
+
+		if initialDistXZ/3 > MaxDistance or initialDistY/3 > MaxDistanceY then
+			return
+		end
+
+		local Ping = Toggles.PingAdjust.Value and LocalPlayer:GetNetworkPing() or 0
+		local ParryTime = Time
+
+		local conn
+		conn = RunService.RenderStepped:Connect(function()
+			if not animationTrack.IsPlaying then
+				conn:Disconnect()
 				return
 			end
-			if EntityRootPart and EntityHumanoid then
-				local distance = (root.Position - EntityRootPart.Position).Magnitude / 2
-				if distance > MaxDistance and distance > MaxDistanceY then
-					return
-				end
 
-				local Time = tonumber(AnimationConfig.WhenToParry)
-				local Ping = LocalPlayer:GetNetworkPing()
-				local Delay = Options.ParryDelay.Value/100
-				local HasToFace = tonumber(AnimationConfig.FacingDirection)
-				local TimePerStud = tonumber(AnimationConfig.TimePerStud)
-				local TimeEnd = tonumber(AnimationConfig.TimeEnd)
-				local MinimumDistance = tonumber(AnimationConfig.TimeToDistanceDelay)
+			local progress = animationTrack.TimePosition / animationTrack.Length
 
-				if Toggles.PingAdjust.Value then
-					Ping = LocalPlayer:GetNetworkPing()
-				else
-					Ping = 0
-				end
-
-				local ParryTime = Time-Ping
-
-				local i = 0
-				local conn
-				conn = RunService.RenderStepped:Connect(function(dt)
-					local progress = animationTrack.TimePosition / animationTrack.Speed
-					if progress >= TimeEnd then
-						conn:Disconnect()
-						return
-					end
-
-					if not animationTrack.IsPlaying then
-						conn:Disconnect()
-						return
-					end
-
-					if Toggles.PingAdjust.Value then
-						Ping = LocalPlayer:GetNetworkPing()
-					else
-						Ping = 0
-					end
-
-					local rootPosition = root.Position
-					local entityPosition = EntityRootPart.Position
-					local ExtraTime = 0
-					local distance = (rootPosition-entityPosition).Magnitude 
-					if distance > MinimumDistance then
-						ExtraTime = (distance-MinimumDistance)*TimePerStud
-					end
-					if progress >= ParryTime-Ping+ExtraTime then
-						if HasToFace then
-							local toPlayer = (root.Position - EntityRootPart.Position).Unit
-							local enemyLook = horizontalLookVector(EntityRootPart)
-							local alignment = enemyLook:Dot(toPlayer)
-
-							if HasToFace > alignment  then
-								return
-							end
-						end
-
-						local distanceXZ = (Vector2.new(rootPosition.X, rootPosition.Z) - Vector2.new(entityPosition.X, entityPosition.Z)).Magnitude
-						local distanceY = math.abs(rootPosition.Y - entityPosition.Y)
-						if distanceXZ > MaxDistance or distanceY > MaxDistanceY then
-							return
-						end
-
-						task.spawn(function()
-							for i = 1, 5 do
-								VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-								task.wait(0.05)
-								VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-							end
-						end)
-
-						conn:Disconnect()
-					end
-				end)
-
-				local EndedConn 
-				EndedConn = animationTrack.Ended:Connect(function()
-					conn:Disconnect()
-					EndedConn:Disconnect()
-				end)
-				AutoParryMaid:Add(EndedConn)
-				AutoParryMaid:Add(conn)
-			else
-				AutoParryMaid:Remove(entity)
+			if progress >= TimeEnd then
+				conn:Disconnect()
+				return
 			end
-		end
+
+			local rootPos = root.Position
+			local entityPos = EntityRootPart.Position
+			local distanceXZ = (Vector2.new(rootPos.X, rootPos.Z) - Vector2.new(entityPos.X, entityPos.Z)).Magnitude 
+			local distanceY = math.abs(rootPos.Y - entityPos.Y) 
+
+			if distanceXZ > MaxDistance or distanceY > MaxDistanceY then
+				return
+			end
+
+			local ExtraTime = 0
+			if distanceXZ > MinimumDistance then
+				ExtraTime = (distanceXZ - MinimumDistance) * TimePerStud
+			end
+
+			if progress >= math.clamp((ParryTime - Ping + ExtraTime), 0, 1) then
+				if HasToFace ~= 0 then
+					local toPlayer = (rootPos - entityPos).Unit
+					local enemyLook = horizontalLookVector(EntityRootPart)
+					local alignment = enemyLook:Dot(toPlayer)
+
+					if HasToFace > alignment then
+						return
+					end
+				end
+
+				task.spawn(function()
+					for i = 1, 5 do
+						VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+						task.wait(0.05)
+						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+					end
+				end)
+
+				conn:Disconnect()
+			end
+		end)	
+		
+		local EndedConn
+		EndedConn = animationTrack.Ended:Connect(function()
+			if conn then conn:Disconnect() end
+			EndedConn:Disconnect()
+		end)
+
+		AutoParryMaid:Add(conn)
+		AutoParryMaid:Add(EndedConn)
 	end)
 end
 
@@ -1458,7 +1444,7 @@ APConfigsBox:AddButton({
 	Tooltip = "Yes this is ai generated\nIdontmakegui",
 	Callback = function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/ConfigsEditor"))()
-	end,
+	end
 })
 
 
