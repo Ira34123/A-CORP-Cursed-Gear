@@ -1,460 +1,460 @@
 -- THIS IS FULLY AI GENERATED
-		-- Parry Config Editor GUI (LocalScript)
-		-- Place this as a LocalScript (e.g. in StarterPlayer > StarterPlayerScripts)
+-- Parry Config Editor GUI (LocalScript)
+-- Place this as a LocalScript (e.g. in StarterPlayer > StarterPlayerScripts)
 
-		local TweenService = game:GetService("TweenService")
-		local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
-		-- Create ScreenGui
-		local screenGui = Instance.new("ScreenGui")
-		screenGui.Name = "ParryConfigEditor"
-		screenGui.ResetOnSpawn = false
-		screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ParryConfigEditor"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-		-- Main Frame
-		local mainFrame = Instance.new("Frame")
-		mainFrame.Name = "MainFrame"
-		mainFrame.Size = UDim2.new(0, 940, 0, 640)
-		mainFrame.Position = UDim2.new(0.5, -470, 0.5, -320)
-		mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-		mainFrame.BorderSizePixel = 0
-		mainFrame.Parent = screenGui
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 940, 0, 640)
+mainFrame.Position = UDim2.new(0.5, -470, 0.5, -320)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
-		local mainCorner = Instance.new("UICorner")
-		mainCorner.CornerRadius = UDim.new(0, 14)
-		mainCorner.Parent = mainFrame
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = mainFrame
 
-		local mainStroke = Instance.new("UIStroke")
-		mainStroke.Color = Color3.fromRGB(55, 55, 55)
-		mainStroke.Thickness = 2
-		mainStroke.Parent = mainFrame
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(55, 55, 55)
+mainStroke.Thickness = 2
+mainStroke.Parent = mainFrame
 
-		-- Title Bar
-		local titleBar = Instance.new("Frame")
-		titleBar.Name = "TitleBar"
-		titleBar.Size = UDim2.new(1, 0, 0, 50)
-		titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-		titleBar.BorderSizePixel = 0
-		titleBar.Parent = mainFrame
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 50)
+titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
 
-		local titleCorner = Instance.new("UICorner")
-		titleCorner.CornerRadius = UDim.new(0, 14)
-		titleCorner.Parent = titleBar
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 14)
+titleCorner.Parent = titleBar
 
-		local titleLabel = Instance.new("TextLabel")
-		titleLabel.Size = UDim2.new(1, -100, 1, 0)
-		titleLabel.BackgroundTransparency = 1
-		titleLabel.Text = "⚔️  PARRY CONFIG EDITOR"
-		titleLabel.TextColor3 = Color3.fromRGB(0, 180, 255)
-		titleLabel.TextScaled = true
-		titleLabel.Font = Enum.Font.GothamBold
-		titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-		titleLabel.Parent = titleBar
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -100, 1, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "⚔️  PARRY CONFIG EDITOR"
+titleLabel.TextColor3 = Color3.fromRGB(0, 180, 255)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = titleBar
 
-		local titlePadding = Instance.new("UIPadding")
-		titlePadding.PaddingLeft = UDim.new(0, 20)
-		titlePadding.Parent = titleLabel
+local titlePadding = Instance.new("UIPadding")
+titlePadding.PaddingLeft = UDim.new(0, 20)
+titlePadding.Parent = titleLabel
 
-		-- Close Button
-		local closeButton = Instance.new("TextButton")
-		closeButton.Size = UDim2.new(0, 40, 0, 40)
-		closeButton.Position = UDim2.new(1, -50, 0, 5)
-		closeButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-		closeButton.Text = "✕"
-		closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-		closeButton.TextScaled = true
-		closeButton.Font = Enum.Font.GothamBold
-		closeButton.Parent = titleBar
+-- Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 40, 0, 40)
+closeButton.Position = UDim2.new(1, -50, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+closeButton.Text = "✕"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextScaled = true
+closeButton.Font = Enum.Font.GothamBold
+closeButton.Parent = titleBar
 
-		local closeCorner = Instance.new("UICorner")
-		closeCorner.CornerRadius = UDim.new(0, 8)
-		closeCorner.Parent = closeButton
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeButton
 
-		-- Make GUI draggable
-		local dragging, dragInput, mousePos, framePos
-		titleBar.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 then
-				dragging = true
-				mousePos = input.Position
-				framePos = mainFrame.Position
-			end
-		end)
+-- Make GUI draggable
+local dragging, dragInput, mousePos, framePos
+titleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		mousePos = input.Position
+		framePos = mainFrame.Position
+	end
+end)
 
-		titleBar.InputEnded:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 then
-				dragging = false
-			end
-		end)
+titleBar.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
 
-		UserInputService.InputChanged:Connect(function(input)
-			if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-				local delta = input.Position - mousePos
-				mainFrame.Position = UDim2.new(
-					framePos.X.Scale,
-					framePos.X.Offset + delta.X,
-					framePos.Y.Scale,
-					framePos.Y.Offset + delta.Y
-				)
-			end
-		end)
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - mousePos
+		mainFrame.Position = UDim2.new(
+			framePos.X.Scale,
+			framePos.X.Offset + delta.X,
+			framePos.Y.Scale,
+			framePos.Y.Offset + delta.Y
+		)
+	end
+end)
 
-		-- Close functionality
-		closeButton.MouseButton1Click:Connect(function()
-			screenGui:Destroy()
-		end)
+-- Close functionality
+closeButton.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
+end)
 
-		-- Sidebar
-		local sidebar = Instance.new("Frame")
-		sidebar.Size = UDim2.new(0, 290, 1, -60)
-		sidebar.Position = UDim2.new(0, 0, 0, 60)
-		sidebar.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-		sidebar.BorderSizePixel = 0
-		sidebar.Parent = mainFrame
+-- Sidebar
+local sidebar = Instance.new("Frame")
+sidebar.Size = UDim2.new(0, 290, 1, -60)
+sidebar.Position = UDim2.new(0, 0, 0, 60)
+sidebar.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
+sidebar.BorderSizePixel = 0
+sidebar.Parent = mainFrame
 
-		local sidebarCorner = Instance.new("UICorner")
-		sidebarCorner.CornerRadius = UDim.new(0, 12)
-		sidebarCorner.Parent = sidebar
+local sidebarCorner = Instance.new("UICorner")
+sidebarCorner.CornerRadius = UDim.new(0, 12)
+sidebarCorner.Parent = sidebar
 
-		-- Search Box
-		local searchBox = Instance.new("TextBox")
-		searchBox.Size = UDim2.new(1, -20, 0, 45)
-		searchBox.Position = UDim2.new(0, 10, 0, 15)
-		searchBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-		searchBox.PlaceholderText = "🔍 Search groups..."
-		searchBox.Text = ""
-		searchBox.TextColor3 = Color3.fromRGB(220, 220, 220)
-		searchBox.TextScaled = true
-		searchBox.Font = Enum.Font.Gotham
-		searchBox.ClearTextOnFocus = false
-		searchBox.Parent = sidebar
+-- Search Box
+local searchBox = Instance.new("TextBox")
+searchBox.Size = UDim2.new(1, -20, 0, 45)
+searchBox.Position = UDim2.new(0, 10, 0, 15)
+searchBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+searchBox.PlaceholderText = "🔍 Search groups..."
+searchBox.Text = ""
+searchBox.TextColor3 = Color3.fromRGB(220, 220, 220)
+searchBox.TextScaled = true
+searchBox.Font = Enum.Font.Gotham
+searchBox.ClearTextOnFocus = false
+searchBox.Parent = sidebar
 
-		local searchCorner = Instance.new("UICorner")
-		searchCorner.CornerRadius = UDim.new(0, 10)
-		searchCorner.Parent = searchBox
+local searchCorner = Instance.new("UICorner")
+searchCorner.CornerRadius = UDim.new(0, 10)
+searchCorner.Parent = searchBox
 
-		-- Group List
-		local groupScroll = Instance.new("ScrollingFrame")
-		groupScroll.Size = UDim2.new(1, -20, 1, -130)
-		groupScroll.Position = UDim2.new(0, 10, 0, 80)
-		groupScroll.BackgroundTransparency = 1
-		groupScroll.ScrollBarThickness = 5
-		groupScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-		groupScroll.Parent = sidebar
+-- Group List
+local groupScroll = Instance.new("ScrollingFrame")
+groupScroll.Size = UDim2.new(1, -20, 1, -130)
+groupScroll.Position = UDim2.new(0, 10, 0, 80)
+groupScroll.BackgroundTransparency = 1
+groupScroll.ScrollBarThickness = 5
+groupScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
+groupScroll.Parent = sidebar
 
-		local listLayout = Instance.new("UIListLayout")
-		listLayout.Padding = UDim.new(0, 8)
-		listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		listLayout.Parent = groupScroll
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 8)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = groupScroll
 
-		-- Add New Group Button
-		local addButton = Instance.new("TextButton")
-		addButton.Size = UDim2.new(1, -20, 0, 45)
-		addButton.Position = UDim2.new(0, 10, 1, -60)
-		addButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-		addButton.Text = "+ ADD NEW GROUP"
-		addButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-		addButton.TextScaled = true
-		addButton.Font = Enum.Font.GothamBold
-		addButton.Parent = sidebar
+-- Add New Group Button
+local addButton = Instance.new("TextButton")
+addButton.Size = UDim2.new(1, -20, 0, 45)
+addButton.Position = UDim2.new(0, 10, 1, -60)
+addButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+addButton.Text = "+ ADD NEW GROUP"
+addButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+addButton.TextScaled = true
+addButton.Font = Enum.Font.GothamBold
+addButton.Parent = sidebar
 
-		local addCorner = Instance.new("UICorner")
-		addCorner.CornerRadius = UDim.new(0, 10)
-		addCorner.Parent = addButton
+local addCorner = Instance.new("UICorner")
+addCorner.CornerRadius = UDim.new(0, 10)
+addCorner.Parent = addButton
 
-		-- Editor Frame
-		local editorFrame = Instance.new("Frame")
-		editorFrame.Size = UDim2.new(1, -310, 1, -60)
-		editorFrame.Position = UDim2.new(0, 300, 0, 60)
-		editorFrame.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-		editorFrame.BorderSizePixel = 0
-		editorFrame.Visible = false
-		editorFrame.Parent = mainFrame
+-- Editor Frame
+local editorFrame = Instance.new("Frame")
+editorFrame.Size = UDim2.new(1, -310, 1, -60)
+editorFrame.Position = UDim2.new(0, 300, 0, 60)
+editorFrame.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
+editorFrame.BorderSizePixel = 0
+editorFrame.Visible = false
+editorFrame.Parent = mainFrame
 
-		local editorCorner = Instance.new("UICorner")
-		editorCorner.CornerRadius = UDim.new(0, 12)
-		editorCorner.Parent = editorFrame
+local editorCorner = Instance.new("UICorner")
+editorCorner.CornerRadius = UDim.new(0, 12)
+editorCorner.Parent = editorFrame
 
-		local editorTitle = Instance.new("TextLabel")
-		editorTitle.Size = UDim2.new(1, 0, 0, 55)
-		editorTitle.BackgroundTransparency = 1
-		editorTitle.Text = "No group selected"
-		editorTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-		editorTitle.TextScaled = true
-		editorTitle.Font = Enum.Font.GothamSemibold
-		editorTitle.Parent = editorFrame
+local editorTitle = Instance.new("TextLabel")
+editorTitle.Size = UDim2.new(1, 0, 0, 55)
+editorTitle.BackgroundTransparency = 1
+editorTitle.Text = "No group selected"
+editorTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+editorTitle.TextScaled = true
+editorTitle.Font = Enum.Font.GothamSemibold
+editorTitle.Parent = editorFrame
 
-		-- Editor Content
-		local editorScroll = Instance.new("ScrollingFrame")
-		editorScroll.Size = UDim2.new(1, -30, 1, -130)
-		editorScroll.Position = UDim2.new(0, 15, 0, 65)
-		editorScroll.BackgroundTransparency = 1
-		editorScroll.ScrollBarThickness = 6
-		editorScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-		editorScroll.Parent = editorFrame
+-- Editor Content
+local editorScroll = Instance.new("ScrollingFrame")
+editorScroll.Size = UDim2.new(1, -30, 1, -130)
+editorScroll.Position = UDim2.new(0, 15, 0, 65)
+editorScroll.BackgroundTransparency = 1
+editorScroll.ScrollBarThickness = 6
+editorScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
+editorScroll.Parent = editorFrame
 
-		local editorListLayout = Instance.new("UIListLayout")
-		editorListLayout.Padding = UDim.new(0, 14)
-		editorListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		editorListLayout.Parent = editorScroll
+local editorListLayout = Instance.new("UIListLayout")
+editorListLayout.Padding = UDim.new(0, 14)
+editorListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+editorListLayout.Parent = editorScroll
 
-		-- Helper function to create input fields
-		local function createInput(labelText, defaultValue)
-			local frame = Instance.new("Frame")
-			frame.Size = UDim2.new(1, 0, 0, 42)
-			frame.BackgroundTransparency = 1
-			frame.Parent = editorScroll
+-- Helper function to create input fields
+local function createInput(labelText, defaultValue)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 0, 42)
+	frame.BackgroundTransparency = 1
+	frame.Parent = editorScroll
 
-			local label = Instance.new("TextLabel")
-			label.Size = UDim2.new(0.42, 0, 1, 0)
-			label.BackgroundTransparency = 1
-			label.Text = labelText
-			label.TextColor3 = Color3.fromRGB(180, 180, 180)
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Font = Enum.Font.Gotham
-			label.TextScaled = true
-			label.Parent = frame
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.42, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = labelText
+	label.TextColor3 = Color3.fromRGB(180, 180, 180)
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Font = Enum.Font.Gotham
+	label.TextScaled = true
+	label.Parent = frame
 
-			local box = Instance.new("TextBox")
-			box.Size = UDim2.new(0.56, 0, 1, 0)
-			box.Position = UDim2.new(0.44, 0, 0, 0)
-			box.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-			box.Text = tostring(defaultValue)
-			box.TextColor3 = Color3.fromRGB(255, 255, 255)
-			box.TextScaled = true
-			box.Font = Enum.Font.Gotham
-			box.ClearTextOnFocus = false
-			box.Parent = frame
+	local box = Instance.new("TextBox")
+	box.Size = UDim2.new(0.56, 0, 1, 0)
+	box.Position = UDim2.new(0.44, 0, 0, 0)
+	box.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	box.Text = tostring(defaultValue)
+	box.TextColor3 = Color3.fromRGB(255, 255, 255)
+	box.TextScaled = true
+	box.Font = Enum.Font.Gotham
+	box.ClearTextOnFocus = false
+	box.Parent = frame
 
-			local boxCorner = Instance.new("UICorner")
-			boxCorner.CornerRadius = UDim.new(0, 8)
-			boxCorner.Parent = box
+	local boxCorner = Instance.new("UICorner")
+	boxCorner.CornerRadius = UDim.new(0, 8)
+	boxCorner.Parent = box
 
-			return box
+	return box
+end
+
+-- Create all input fields
+local groupNameInput = createInput("Group Name", "")
+local idsInput       = createInput("IDs (comma separated)", "")
+
+local whenToParryInput     = createInput("WhenToParry", 0)
+local distanceInput        = createInput("Distance", 0)
+local distanceYInput       = createInput("DistanceY", 0)
+local facingDirectionInput = createInput("FacingDirection", 0)
+local timePerStudInput     = createInput("TimePerStud", 0)
+local timeEndInput         = createInput("TimeEnd", 0)
+local timeToDistanceDelayInput = createInput("TimeToDistanceDelay", 0)
+
+-- Bottom Buttons
+local bottomFrame = Instance.new("Frame")
+bottomFrame.Size = UDim2.new(1, -30, 0, 55)
+bottomFrame.Position = UDim2.new(0, 15, 1, -70)
+bottomFrame.BackgroundTransparency = 1
+bottomFrame.Parent = editorFrame
+
+local saveBtn = Instance.new("TextButton")
+saveBtn.Size = UDim2.new(0.48, 0, 1, 0)
+saveBtn.BackgroundColor3 = Color3.fromRGB(0, 190, 80)
+saveBtn.Text = "SAVE CHANGES"
+saveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+saveBtn.TextScaled = true
+saveBtn.Font = Enum.Font.GothamBold
+saveBtn.Parent = bottomFrame
+
+local deleteBtn = Instance.new("TextButton")
+deleteBtn.Size = UDim2.new(0.48, 0, 1, 0)
+deleteBtn.Position = UDim2.new(0.52, 0, 0, 0)
+deleteBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+deleteBtn.Text = "DELETE GROUP"
+deleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+deleteBtn.TextScaled = true
+deleteBtn.Font = Enum.Font.GothamBold
+deleteBtn.Parent = bottomFrame
+
+local function applyCorner(btn)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 10)
+	c.Parent = btn
+end
+applyCorner(saveBtn)
+applyCorner(deleteBtn)
+
+-- State
+local currentGroup = nil
+local groupButtons = {}
+
+local function refreshGroupList(filter)
+	for _, btn in ipairs(groupButtons) do btn:Destroy() end
+	groupButtons = {}
+
+	local groups = {}
+	for name in pairs(ParryConfigs.Groups) do
+		table.insert(groups, name)
+	end
+	table.sort(groups)
+
+	local filtered = {}
+	for _, name in ipairs(groups) do
+		if not filter or filter == "" or string.find(string.lower(name), string.lower(filter)) then
+			table.insert(filtered, name)
 		end
+	end
 
-		-- Create all input fields
-		local groupNameInput = createInput("Group Name", "")
-		local idsInput       = createInput("IDs (comma separated)", "")
+	groupScroll.CanvasSize = UDim2.new(0, 0, 0, #filtered * 50)
 
-		local whenToParryInput     = createInput("WhenToParry", 0)
-		local distanceInput        = createInput("Distance", 0)
-		local distanceYInput       = createInput("DistanceY", 0)
-		local facingDirectionInput = createInput("FacingDirection", 0)
-		local timePerStudInput     = createInput("TimePerStud", 0)
-		local timeEndInput         = createInput("TimeEnd", 0)
-		local timeToDistanceDelayInput = createInput("TimeToDistanceDelay", 0)
+	for _, groupName in ipairs(filtered) do
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 42)
+		btn.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
+		btn.Text = groupName
+		btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		btn.TextScaled = true
+		btn.Font = Enum.Font.GothamSemibold
+		btn.Parent = groupScroll
 
-		-- Bottom Buttons
-		local bottomFrame = Instance.new("Frame")
-		bottomFrame.Size = UDim2.new(1, -30, 0, 55)
-		bottomFrame.Position = UDim2.new(0, 15, 1, -70)
-		bottomFrame.BackgroundTransparency = 1
-		bottomFrame.Parent = editorFrame
+		local btnCorner = Instance.new("UICorner")
+		btnCorner.CornerRadius = UDim.new(0, 8)
+		btnCorner.Parent = btn
 
-		local saveBtn = Instance.new("TextButton")
-		saveBtn.Size = UDim2.new(0.48, 0, 1, 0)
-		saveBtn.BackgroundColor3 = Color3.fromRGB(0, 190, 80)
-		saveBtn.Text = "SAVE CHANGES"
-		saveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-		saveBtn.TextScaled = true
-		saveBtn.Font = Enum.Font.GothamBold
-		saveBtn.Parent = bottomFrame
-
-		local deleteBtn = Instance.new("TextButton")
-		deleteBtn.Size = UDim2.new(0.48, 0, 1, 0)
-		deleteBtn.Position = UDim2.new(0.52, 0, 0, 0)
-		deleteBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-		deleteBtn.Text = "DELETE GROUP"
-		deleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-		deleteBtn.TextScaled = true
-		deleteBtn.Font = Enum.Font.GothamBold
-		deleteBtn.Parent = bottomFrame
-
-		local function applyCorner(btn)
-			local c = Instance.new("UICorner")
-			c.CornerRadius = UDim.new(0, 10)
-			c.Parent = btn
-		end
-		applyCorner(saveBtn)
-		applyCorner(deleteBtn)
-
-		-- State
-		local currentGroup = nil
-		local groupButtons = {}
-
-		local function refreshGroupList(filter)
-			for _, btn in ipairs(groupButtons) do btn:Destroy() end
-			groupButtons = {}
-
-			local groups = {}
-			for name in pairs(ParryConfigs.Groups) do
-				table.insert(groups, name)
-			end
-			table.sort(groups)
-
-			local filtered = {}
-			for _, name in ipairs(groups) do
-				if not filter or filter == "" or string.find(string.lower(name), string.lower(filter)) then
-					table.insert(filtered, name)
-				end
-			end
-
-			groupScroll.CanvasSize = UDim2.new(0, 0, 0, #filtered * 50)
-
-			for _, groupName in ipairs(filtered) do
-				local btn = Instance.new("TextButton")
-				btn.Size = UDim2.new(1, 0, 0, 42)
-				btn.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
-				btn.Text = groupName
-				btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-				btn.TextScaled = true
-				btn.Font = Enum.Font.GothamSemibold
-				btn.Parent = groupScroll
-
-				local btnCorner = Instance.new("UICorner")
-				btnCorner.CornerRadius = UDim.new(0, 8)
-				btnCorner.Parent = btn
-
-				btn.MouseButton1Click:Connect(function()
-					currentGroup = groupName
-					loadGroup(groupName)
-				end)
-
-				table.insert(groupButtons, btn)
-			end
-		end
-
-		function loadGroup(groupName)
+		btn.MouseButton1Click:Connect(function()
 			currentGroup = groupName
-			editorFrame.Visible = true
-			editorTitle.Text = "Editing: " .. groupName
-
-			local data = ParryConfigs.Groups[groupName]
-			if not data then return end
-
-			groupNameInput.Text = groupName
-
-			-- Collect IDs
-			local ids = {}
-			for id, g in pairs(ParryConfigs.IDToGroup) do
-				if g == groupName then
-					table.insert(ids, id)
-				end
-			end
-			table.sort(ids)
-			idsInput.Text = table.concat(ids, ",")
-
-			whenToParryInput.Text     = tostring(data.WhenToParry or 0)
-			distanceInput.Text        = tostring(data.Distance or 0)
-			distanceYInput.Text       = tostring(data.DistanceY or 0)
-			facingDirectionInput.Text = tostring(data.FacingDirection or 0)
-			timePerStudInput.Text     = tostring(data.TimePerStud or 0)
-			timeEndInput.Text         = tostring(data.TimeEnd or 0)
-			timeToDistanceDelayInput.Text = tostring(data.TimeToDistanceDelay or 0)
-		end
-
-		local function saveCurrent()
-			if not currentGroup then return end
-
-			local newName = groupNameInput.Text:match("^%s*(.-)%s*$")
-			if newName == "" then
-				-- You can add a warning here later
-				return
-			end
-
-			-- === BETTER ID PARSING ===
-			local idsStr = idsInput.Text or ""
-
-
-			if idsStr == "" then
-				return
-			end
-
-			local function n(txt) return tonumber(txt) or 0 end
-
-			-- Handle rename
-			local oldName = currentGroup
-			if newName ~= oldName then
-				if ParryConfigs.Groups[newName] then
-					-- Optional: show "A group with this name already exists!"
-					return
-				end
-
-				DeleteApConfig(oldName)
-				currentGroup = newName
-			else
-				-- Same group name → clear ALL old IDs first
-				for id, groupName in pairs(ParryConfigs.IDToGroup) do
-					if groupName == oldName then
-						ParryConfigs.IDToGroup[id] = nil
-					end
-				end
-			end
-
-			-- Now save with the properly parsed ID list
-			FunctionSetApConfig(
-				newName,
-				idsStr,        -- Pass clean comma-separated string
-				n(whenToParryInput.Text),
-				n(distanceInput.Text),
-				n(distanceYInput.Text),
-				n(facingDirectionInput.Text),
-				n(timePerStudInput.Text),
-				n(timeEndInput.Text),
-				n(timeToDistanceDelayInput.Text)
-			)
-
-			refreshGroupList(searchBox.Text)
-			loadGroup(newName)   -- Refresh the editor so you see the correct IDs
-		end
-		local function deleteCurrent()
-			if not currentGroup then return end
-			DeleteApConfig(currentGroup)
-			currentGroup = nil
-			editorFrame.Visible = false
-			refreshGroupList(searchBox.Text)
-		end
-
-		-- Connections
-		searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-			refreshGroupList(searchBox.Text)
+			loadGroup(groupName)
 		end)
 
-		addButton.MouseButton1Click:Connect(function()
-			-- Quick new group with default name
-			local newName = "NewGroup_" .. os.time()
-			while ParryConfigs.Groups[newName] do
-				newName = "NewGroup_" .. os.time() .. "_" .. math.random(100,999)
-			end
+		table.insert(groupButtons, btn)
+	end
+end
 
-			currentGroup = newName
-			editorFrame.Visible = true
-			editorTitle.Text = "Editing: " .. newName
+function loadGroup(groupName)
+	currentGroup = groupName
+	editorFrame.Visible = true
+	editorTitle.Text = "Editing: " .. groupName
 
-			groupNameInput.Text = newName
-			idsInput.Text = ""
+	local data = ParryConfigs.Groups[groupName]
+	if not data then return end
 
-			whenToParryInput.Text = "0"
-			distanceInput.Text = "0"
-			distanceYInput.Text = "0"
-			facingDirectionInput.Text = "0"
-			timePerStudInput.Text = "0"
-			timeEndInput.Text = "0"
-			timeToDistanceDelayInput.Text = "0"
+	groupNameInput.Text = groupName
 
-			refreshGroupList(searchBox.Text)
-		end)
-
-		saveBtn.MouseButton1Click:Connect(saveCurrent)
-		deleteBtn.MouseButton1Click:Connect(deleteCurrent)
-
-		-- Initialize
-		refreshGroupList("")
-
-		-- Auto-load first group if exists
-		local first = next(ParryConfigs.Groups)
-		if first then
-			loadGroup(first)
+	-- Collect IDs
+	local ids = {}
+	for id, g in pairs(ParryConfigs.IDToGroup) do
+		if g == groupName then
+			table.insert(ids, id)
 		end
+	end
+	table.sort(ids)
+	idsInput.Text = table.concat(ids, ",")
+
+	whenToParryInput.Text     = tostring(data.WhenToParry or 0)
+	distanceInput.Text        = tostring(data.Distance or 0)
+	distanceYInput.Text       = tostring(data.DistanceY or 0)
+	facingDirectionInput.Text = tostring(data.FacingDirection or 0)
+	timePerStudInput.Text     = tostring(data.TimePerStud or 0)
+	timeEndInput.Text         = tostring(data.TimeEnd or 0)
+	timeToDistanceDelayInput.Text = tostring(data.TimeToDistanceDelay or 0)
+end
+
+local function saveCurrent()
+	if not currentGroup then return end
+
+	local newName = groupNameInput.Text:match("^%s*(.-)%s*$")
+	if newName == "" then
+		-- You can add a warning here later
+		return
+	end
+
+	-- === BETTER ID PARSING ===
+	local idsStr = idsInput.Text or ""
+
+
+	if idsStr == "" then
+		return
+	end
+
+	local function n(txt) return tonumber(txt) or 0 end
+
+	-- Handle rename
+	local oldName = currentGroup
+	if newName ~= oldName then
+		if ParryConfigs.Groups[newName] then
+			-- Optional: show "A group with this name already exists!"
+			return
+		end
+
+		DeleteApConfig(oldName)
+		currentGroup = newName
+	else
+		-- Same group name → clear ALL old IDs first
+		for id, groupName in pairs(ParryConfigs.IDToGroup) do
+			if groupName == oldName then
+				ParryConfigs.IDToGroup[id] = nil
+			end
+		end
+	end
+
+	-- Now save with the properly parsed ID list
+	FunctionSetApConfig(
+		newName,
+		idsStr,        -- Pass clean comma-separated string
+		n(whenToParryInput.Text),
+		n(distanceInput.Text),
+		n(distanceYInput.Text),
+		n(facingDirectionInput.Text),
+		n(timePerStudInput.Text),
+		n(timeEndInput.Text),
+		n(timeToDistanceDelayInput.Text)
+	)
+
+	refreshGroupList(searchBox.Text)
+	loadGroup(newName)   -- Refresh the editor so you see the correct IDs
+end
+local function deleteCurrent()
+	if not currentGroup then return end
+	DeleteApConfig(currentGroup)
+	currentGroup = nil
+	editorFrame.Visible = false
+	refreshGroupList(searchBox.Text)
+end
+
+-- Connections
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+	refreshGroupList(searchBox.Text)
+end)
+
+addButton.MouseButton1Click:Connect(function()
+	-- Quick new group with default name
+	local newName = "NewGroup_" .. os.time()
+	while ParryConfigs.Groups[newName] do
+		newName = "NewGroup_" .. os.time() .. "_" .. math.random(100,999)
+	end
+
+	currentGroup = newName
+	editorFrame.Visible = true
+	editorTitle.Text = "Editing: " .. newName
+
+	groupNameInput.Text = newName
+	idsInput.Text = ""
+
+	whenToParryInput.Text = "0"
+	distanceInput.Text = "0"
+	distanceYInput.Text = "0"
+	facingDirectionInput.Text = "0"
+	timePerStudInput.Text = "0"
+	timeEndInput.Text = "0"
+	timeToDistanceDelayInput.Text = "0"
+
+	refreshGroupList(searchBox.Text)
+end)
+
+saveBtn.MouseButton1Click:Connect(saveCurrent)
+deleteBtn.MouseButton1Click:Connect(deleteCurrent)
+
+-- Initialize
+refreshGroupList("")
+
+-- Auto-load first group if exists
+local first = next(ParryConfigs.Groups)
+if first then
+	loadGroup(first)
+end
 
 
