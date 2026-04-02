@@ -36,7 +36,7 @@ DefaultParryConfigs = {
             Distance = 8,
             WhenToParry = 0.22,
         },
-        RunningM1 = {
+        RunningFistM1 = {
             FacingDirection = -1,
             TimeEnd = 0.3,
             DistanceY = 20,
