@@ -9,6 +9,7 @@ DefaultParryConfigs = {
 			FacingDirection = -1,
 			TimePerStud = 0,
 			TimeEnd = 0.25,
+			TimeToDistanceDelay = 0,
 		},
 		["FistCrit"] = {
 			WhenToParry = 0.43,
@@ -17,6 +18,7 @@ DefaultParryConfigs = {
 			FacingDirection = -1,
 			TimePerStud = 0.01,
 			TimeEnd = 0.6,
+			TimeToDistanceDelay = 0,
 		},
 
 		--SPEAR
@@ -27,6 +29,7 @@ DefaultParryConfigs = {
 			FacingDirection = -1,
 			TimePerStud = 0,
 			TimeEnd = 0.27,
+			TimeToDistanceDelay = 0,
 		},
 		["SpearCrit"] = {
 			WhenToParry = 0.22,
@@ -35,6 +38,7 @@ DefaultParryConfigs = {
 			FacingDirection = -1,
 			TimePerStud = 0.01,
 			TimeEnd = 0.4,
+			TimeToDistanceDelay = 0,
 		},
 		-- SWORD
 		["SwordM1"] = {
@@ -44,6 +48,7 @@ DefaultParryConfigs = {
 			FacingDirection = -1,
 			TimePerStud = 0,
 			TimeEnd = 0.27,
+			TimeToDistanceDelay = 0,
 		},
 		["SwordCrit"] = {
 			WhenToParry = 0.41,
@@ -52,6 +57,7 @@ DefaultParryConfigs = {
 			FacingDirection = -1,
 			TimePerStud = 0.01,
 			TimeEnd = 0.6,
+			TimeToDistanceDelay = 0,
 		},
 		
 	},
