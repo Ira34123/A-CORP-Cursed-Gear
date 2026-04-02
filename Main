@@ -802,14 +802,10 @@ function HandleParry(entity)
 				end
 
 				task.spawn(function()
-					for i = 1, 5 do
-						VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-						task.wait(0.05)
-						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-					end
+					VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+					task.wait(0.05)
+					VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
 				end)
-
-				conn:Disconnect()
 			end
 		end)	
 
@@ -1445,7 +1441,7 @@ APConfigsBox:AddButton({
 	Callback = function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/ConfigsEditor"))()
 	end,
-})
+}) 
 
 
 AISlop:AddButton({
