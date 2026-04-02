@@ -584,13 +584,13 @@ end
 function getClosestEntity(AllyAllowed: boolean?, PlayerAllowed: boolean?, MobsAllowed: boolean?): Model?
 	local closestEnemy, closestDistance = nil, math.huge
 	for _, obj in ipairs(workspace.Live:GetChildren()) do
-		
+
 		local IsPlayer = Players:GetPlayerFromCharacter(obj)
-		
+
 		if (not PlayerAllowed and IsPlayer) or obj == PlayerCharacter then
 			continue
 		end
-		
+
 		if not MobsAllowed and not IsPlayer then
 			continue
 		end
@@ -690,7 +690,7 @@ end
 
 --------
 
-local ParryConfigs = isfile(CGFolder)
+ParryConfigs = isfile(CGFolder)
 if ParryConfigs then
 	ParryConfigs = HttpService:JSONDecode(readfile(CGFolder))
 
@@ -716,7 +716,7 @@ else
 end
 
 local ConfigTabExisting = {
-	
+
 }
 --------
 
@@ -758,6 +758,7 @@ function HandleParry(entity)
 				local HasToFace = tonumber(AnimationConfig.FacingDirection)
 				local TimePerStud = tonumber(AnimationConfig.TimePerStud)
 				local TimeEnd = tonumber(AnimationConfig.TimeEnd)
+				local MinimumDistance = tonumber(AnimationConfig.TimeToDistanceDelay)
 
 				if Toggles.PingAdjust.Value then
 					Ping = LocalPlayer:GetNetworkPing()
@@ -770,26 +771,31 @@ function HandleParry(entity)
 				local i = 0
 				local conn
 				conn = RunService.RenderStepped:Connect(function(dt)
-					local progress = animationTrack.TimePosition 
+					local progress = animationTrack.TimePosition / animationTrack.Speed
 					if progress >= TimeEnd then
 						conn:Disconnect()
+						return
 					end
-					
+
 					if not animationTrack.IsPlaying then
 						conn:Disconnect()
 						return
 					end
-					
+
 					if Toggles.PingAdjust.Value then
 						Ping = LocalPlayer:GetNetworkPing()
 					else
 						Ping = 0
 					end
-					
+
 					local rootPosition = root.Position
 					local entityPosition = EntityRootPart.Position
-
-					if progress >= ParryTime-Ping+TimePerStud*(rootPosition-entityPosition).Magnitude then
+					local ExtraTime = 0
+					local distance = (rootPosition-entityPosition).Magnitude 
+					if distance > MinimumDistance then
+						ExtraTime = (distance-MinimumDistance)*TimePerStud
+					end
+					if progress >= ParryTime-Ping+ExtraTime then
 						if HasToFace then
 							local toPlayer = (root.Position - EntityRootPart.Position).Unit
 							local enemyLook = horizontalLookVector(EntityRootPart)
@@ -805,7 +811,7 @@ function HandleParry(entity)
 						if distanceXZ > MaxDistance or distanceY > MaxDistanceY then
 							return
 						end
-						
+
 						task.spawn(function()
 							for i = 1, 5 do
 								VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
@@ -817,7 +823,7 @@ function HandleParry(entity)
 						conn:Disconnect()
 					end
 				end)
-				
+
 				local EndedConn 
 				EndedConn = animationTrack.Ended:Connect(function()
 					conn:Disconnect()
@@ -856,7 +862,7 @@ function EndAutoParry()
 	AutoParryMaid:Clean()
 end
 
-function FunctionSetApConfig(Group: string, Ids: string, WhenToParry: number, Distance: number, DistanceY: number, FacingDirection: number, TimePerStud: number, TimeEnd: number)
+function FunctionSetApConfig(Group: string, Ids: string, WhenToParry: number, Distance: number, DistanceY: number, FacingDirection: number, TimePerStud: number, TimeEnd: number, TimeToDistanceDelay: number)
 	ParryConfigs.Groups[Group] = {
 		WhenToParry = WhenToParry,
 		Distance = Distance,
@@ -864,14 +870,18 @@ function FunctionSetApConfig(Group: string, Ids: string, WhenToParry: number, Di
 		FacingDirection = FacingDirection,
 		TimePerStud = TimePerStud,
 		TimeEnd = TimeEnd,
+		TimeToDistanceDelay = TimeToDistanceDelay,
 	}
-	
+
 	local ids = Ids:split(",")
 	for _, id in ipairs(ids) do
 		ParryConfigs.IDToGroup[id] = Group
 	end
 	
-	writefile(CGFolder, HttpService:JSONEncode(ParryConfigs))
+	local EncodedConfigs = HttpService:JSONEncode(ParryConfigs)
+	
+	writefile(CGFolder, EncodedConfigs)		
+	Options.ImportConfigs:SetValue(EncodedConfigs)
 end
 
 function DeleteApConfig(Group: string)
@@ -884,8 +894,10 @@ function DeleteApConfig(Group: string)
 			ParryConfigs.IDToGroup[id] = nil
 		end
 	end
-	EndAutoParry()
-	writefile(CGFolder, HttpService:JSONEncode(ParryConfigs))
+	local EncodedConfigs = HttpService:JSONEncode(ParryConfigs)
+
+	writefile(CGFolder, EncodedConfigs)		
+	Options.ImportConfigs:SetValue(EncodedConfigs)
 end
 
 function getValues(Inputs)
@@ -896,92 +908,6 @@ function getValues(Inputs)
 		end
 	end
 	return unpack(values)
-end
-
-function CreateNewAPConfig(Group: string, Ids: string, WhenToParry: number, Distance: number, DistanceY: number, FacingDirection: number, TimePerStud: number, TimeEnd: number)
-	if ConfigTabExisting[Group] and ParryConfigs.Group[Group] then
-		return
-	end
-	if Group == "" then
-		return
-	end
-	
-	APConfigsBox:AddDivider()
-	APConfigsBox:AddLabel(`<font color="rgb(255, 0, 0)">{Group}</font>`)
-	APConfigsBox:AddInput(`{Group}WhenToParry`, 
-	{
-		Default = WhenToParry,
-		Numeric = true,
-		Finished = true,
-		ClearTextOnFocus = false,
-		Text = "Parry Timing",
-	})
-	APConfigsBox:AddInput(`{Group}Distance`, 
-		{
-			Default = Distance,
-			Numeric = true,
-			Finished = true,
-			ClearTextOnFocus = false,
-			Text = "Distance",
-		}
-	)
-	APConfigsBox:AddInput(`{Group}DistanceY`, 
-		{
-			Default = DistanceY,
-			Numeric = true,
-			Finished = true,
-			ClearTextOnFocus = false,
-			Text = "DistanceYValue",
-		}
-	)
-	APConfigsBox:AddInput(`{Group}FacingDirection`, 
-		{
-			Default = FacingDirection,
-			Numeric = true,
-			Finished = true,
-			ClearTextOnFocus = false,
-			Text = "Facing Direction",
-		}
-	)
-	APConfigsBox:AddInput(`{Group}Ids`, 
-		{
-			Default = Ids,
-			Numeric = false,
-			Finished = true,
-			ClearTextOnFocus = false,
-			Text = "Ids (separate by comma)",
-		}
-	)
-	APConfigsBox:AddInput(`{Group}TimePerStud`, 
-		{
-			Default = TimePerStud,
-			Numeric = true,
-			Finished = true,
-			ClearTextOnFocus = false,
-			Text = "Extra Time Per Stud",
-		}
-	)
-	APConfigsBox:AddInput(`{Group}TimeEnd`, 
-		{
-			Default = TimeEnd,
-			Numeric = true,
-			Finished = true,
-			ClearTextOnFocus = false,
-			Text = "Hitbox End",
-		}
-	)
-	
-	local Inputs = {`{Group}Ids` , `{Group}WhenToParry`, `{Group}Distance`, `{Group}DistanceY`, `{Group}FacingDirection`, `{Group}TimePerStud`, `{Group}TimeEnd`}
-	
-	SaveManager:SetIgnoreIndexes(Inputs)
-
-	for _, input in ipairs(Inputs) do
-		Options[input]:OnChanged(function()
-			FunctionSetApConfig(Group, getValues(Inputs))
-		end)
-	end
-	
-	ConfigTabExisting[Group] = true
 end
 
 --------------------------------
@@ -1217,7 +1143,7 @@ local EnableFunctions = {
 					if not plrRoot then
 						return
 					end
-					
+
 					local plrPos = plrRoot.Position
 					local enemyPos = root.Position
 					local distance = (Vector2.new(plrPos.X, plrPos.Z) - Vector2.new(enemyPos.X, enemyPos.Z)).Magnitude
@@ -1236,7 +1162,6 @@ local EnableFunctions = {
 				while not closestEnemy do
 					task.wait(1)
 					closestEnemy = getEntityClosestToCamera(Toggles.AttachToAllies.Value, Toggles.AttachToPlayers.Value, Toggles.AttachToMobs.Value)
-					print(closestEnemy)
 				end
 				StartLockOn()
 			end)
@@ -1480,56 +1405,31 @@ LeftAPBox:AddToggle('PingAdjust', {
 	Default = true,
 })
 
-DestructiveAPConfigs:AddLabel("You have to reload the script for\nmost of these to take visible effect.")
-
+local CanReset = true
 DestructiveAPConfigs:AddButton({
 	Text = "Reset to default configs",
+	Tooltip = "Double click it",
+	DoubleClick = true,
 	Callback = function()
-		delfile(CGFolder)
-		ParryConfigs = DefaultParryConfigs
-		setclipboard(HttpService:JSONEncode(ParryConfigs))
+		if CanReset then
+			ParryConfigs = DefaultParryConfigs
+			Options.ImportConfigs:SetValue("")
+			setclipboard(HttpService:JSONEncode(ParryConfigs))
+			delfile(CGFolder)
+			CanReset = false
+			task.delay(5, function()
+				CanReset = true
+			end)
+			Library:Notify("Resetted configs, Old set to clipboard")
+		end
 	end,
 })
 
-DestructiveAPConfigs:AddInput(`ConfigToDestroy`, 
+DestructiveAPConfigs:AddInput("ImportConfigs", 
 	{
 		Default = "",
 		Numeric = false,
-		Finished = true,
-		ClearTextOnFocus = false,
-		Text = "Config to destroy",
-	})
-DestructiveAPConfigs:AddButton({
-	Text = "Destroy config",
-	Callback = function()
-		DeleteApConfig(Options.ConfigToDestroy.Value)
-	end,
-})
-
-
-DestructiveAPConfigs:AddInput('GroupName', 
-	{
-		Default = "",
-		Numeric = false,
-		Finished = true,
-		ClearTextOnFocus = false,
-		Text = "Config to add",
-	})
-
-DestructiveAPConfigs:AddButton({
-	Text = "Create Config",
-	Callback = function()
-		local values = {Options.GroupName.Value, "", 0, 0, 0, -1, 0, 0}
-		FunctionSetApConfig(unpack(values))
-		CreateNewAPConfig(unpack(values))
-	end,
-})
-
-DestructiveAPConfigs:AddInput(`ImportConfigs`, 
-	{
-		Default = "",
-		Numeric = false,
-		Finished = true,
+		Finished = false,
 		ClearTextOnFocus = false,
 		Text = "Configs to import",
 	})
@@ -1538,6 +1438,7 @@ DestructiveAPConfigs:AddButton({
 	Text = "Export Configs",
 	Callback = function()
 		setclipboard(HttpService:JSONEncode(ParryConfigs))
+		Library:Notify("Configs set to clipboard")
 	end,
 })
 
@@ -1546,8 +1447,17 @@ DestructiveAPConfigs:AddButton({
 	Text = "Import Configs",
 	Callback = function()
 		local Config = Options.ImportConfigs.Value
+		local decoded =  HttpService:JSONDecode(Config)
+		ParryConfigs = decoded
 		writefile(CGFolder, Config)
-		ParryConfigs = HttpService:JSONDecode(Config)
+	end,
+})
+
+APConfigsBox:AddButton({
+	Text = "Edit Configs",
+	Tooltip = "Yes this is ai generated\nIdontmakegui",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/Ira34123/A-CORP-Cursed-Gear/refs/heads/main/ConfigsEditor"))()
 	end,
 })
 
@@ -1584,23 +1494,7 @@ CreateToggle(LeftAPBox, "AutoParry", {Text = "Enable AutoParry"})
 
 AttachmentBox:AddSlider("LockOnDistance", {Text = "Lock On Min Distance", Tooltip = "Minimum distance to start tracking\nUsed to stop spinning like crazy up close", Default = 1, Min = 0, Max = 10, Rounding = 1})
 
-for groupName, group in pairs(ParryConfigs.Groups) do
-	local settings = {groupName}
-	local ids = {}
-	for id, groupId in pairs(ParryConfigs.IDToGroup) do
-		if groupId == groupName then
-			table.insert(ids, id)
-		end
-	end
-	table.insert(settings, table.concat(ids, ","))
-	table.insert(settings, group.WhenToParry)
-	table.insert(settings, group.Distance)
-	table.insert(settings, group.DistanceY)
-	table.insert(settings, group.FacingDirection)
-	table.insert(settings, group.TimePerStud)
-	table.insert(settings, group.TimeEnd)
-	CreateNewAPConfig(unpack(settings))
-end
+
 
 RightGroupBox:AddButton({
 	Text = "Teleport to cache",
