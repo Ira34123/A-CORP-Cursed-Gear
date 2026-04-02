@@ -354,40 +354,62 @@
 		end
 
 		local function saveCurrent()
-			if not currentGroup then return end
-
-			local newName = groupNameInput.Text:match("^%s*(.-)%s*$")
-			if newName == "" then
-				return
-			end
-
-			local idsStr = idsInput.Text
-
-			local function n(txt) return tonumber(txt) or 0 end
-
-			-- Rename handling
-			if newName ~= currentGroup then
-				if ParryConfigs.Groups[newName] then
-					return
-				end
-				DeleteApConfig(currentGroup)
-				currentGroup = newName
-			end
-
-			FunctionSetApConfig(
-				newName,
-				idsStr,
-				n(whenToParryInput.Text),
-				n(distanceInput.Text),
-				n(distanceYInput.Text),
-				n(facingDirectionInput.Text),
-				n(timePerStudInput.Text),
-				n(timeEndInput.Text),
-				n(timeToDistanceDelayInput.Text)
-			)
-
-			refreshGroupList(searchBox.Text)
-			loadGroup(newName)
+		    if not currentGroup then return end
+		    
+		    local newName = groupNameInput.Text:match("^%s*(.-)%s*$")
+		    if newName == "" then
+		        -- Optional: show a warning popup
+		        return
+		    end
+		
+		    local idsStr = idsInput.Text or ""
+		    local newIds = {}
+		    for id in string.gmatch(idsStr, "%S+") do  -- split by comma or spaces
+		        id = tonumber(id:match("%d+"))  -- extract number safely
+		        if id then
+		            table.insert(newIds, id)
+		        end
+		    end
+		
+		    local function n(txt) return tonumber(txt) or 0 end
+		
+		    -- If renaming the group
+		    local oldName = currentGroup
+		    if newName ~= oldName then
+		        if ParryConfigs.Groups[newName] then
+		            -- Optional: warn "Group name already exists"
+		            return
+		        end
+		        
+		        -- First delete the old group completely (removes all its IDs too)
+		        DeleteApConfig(oldName)
+		        currentGroup = newName
+		    else
+		        -- Same group name → we still need to clear old IDs before setting new ones
+		        -- This is the key part you're missing
+		        for id, groupName in pairs(ParryConfigs.IDToGroup) do
+		            if groupName == oldName then
+		                -- Remove this mapping (you may need a proper RemoveIDFromGroup function)
+		                ParryConfigs.IDToGroup[id] = nil
+		            end
+		        end
+		    end
+		
+		    -- Now set the new config with the updated ID list
+		    FunctionSetApConfig(
+		        newName,
+		        table.concat(newIds, ","),   -- pass cleaned string
+		        n(whenToParryInput.Text),
+		        n(distanceInput.Text),
+		        n(distanceYInput.Text),
+		        n(facingDirectionInput.Text),
+		        n(timePerStudInput.Text),
+		        n(timeEndInput.Text),
+		        n(timeToDistanceDelayInput.Text)
+		    )
+		
+		    refreshGroupList(searchBox.Text)
+		    loadGroup(newName)  -- reload to show the new IDs
 		end
 
 		local function deleteCurrent()
