@@ -639,7 +639,7 @@ function getAllExits(): {BasePart}
 	if not Spawns then
 		return
 	end
-	
+
 
 	for _, obj in ipairs(Spawns:GetChildren()) do
 		if obj:IsA("BasePart") and obj.Name == "Exit" then
@@ -654,7 +654,7 @@ function getAllExits(): {BasePart}
 	return exitParts
 end
 
-function getEntityClosestToCamera(AllyAllowed: boolean?, MobAllowed: boolean?)
+function getEntityClosestToCamera(AllyAllowed: boolean?, PlayerAllowed: boolean?, MobAllowed: boolean?)
 	local camera = workspace.CurrentCamera
 
 	local closestAngle, closestDistance = 0, 5000
@@ -667,9 +667,17 @@ function getEntityClosestToCamera(AllyAllowed: boolean?, MobAllowed: boolean?)
 			if not AllyAllowed and checkAlly(obj) then
 				continue
 			end
-			if not MobAllowed and not Players:GetPlayerFromCharacter(obj) then
+			
+			local isPlayer = Players:GetPlayerFromCharacter(obj) 
+			
+			if not PlayerAllowed and isPlayer then
 				continue
 			end
+			
+			if not MobAllowed and not isPlayer then
+				continue
+			end
+			
 			local root = obj.HumanoidRootPart
 			local direction = (root.Position - camera.CFrame.Position).Unit
 			local angle = camera.CFrame.LookVector:Dot(direction)
@@ -753,7 +761,7 @@ function HandleParry(entity)
 		local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
 
 		if not (EntityRootPart and root) then return end
-		
+
 		local initialDist = (root.Position - EntityRootPart.Position).Magnitude
 
 		local initialDistXZ =
@@ -795,11 +803,11 @@ function HandleParry(entity)
 			if initialDist > MinimumDistance then
 				ExtraTime = (initialDist - MinimumDistance) * TimePerStud
 			end
-			
+
 			if Toggles.PingAdjust.Value then
 				Ping = LocalPlayer:GetNetworkPing()
 			end
-			
+
 			local Speed = animationTrack.Speed
 
 			if progress >= ParryTime - Ping*Speed - ParryDelay*Speed + ExtraTime then
