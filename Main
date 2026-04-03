@@ -746,18 +746,22 @@ function HandleParry(entity)
 		local TimePerStud = tonumber(AnimationConfig.TimePerStud) or 0
 		local TimeEnd = tonumber(AnimationConfig.TimeEnd) or 1
 		local MinimumDistance = tonumber(AnimationConfig.TimeToDistanceDelay) or 0
+		local ParryDelay = Options.ParryDelay.Value or 0
 
 		local EntityRootPart = entity:FindFirstChild("HumanoidRootPart")
 		local root = PlayerCharacter and PlayerCharacter:FindFirstChild("HumanoidRootPart")
 
 		if not (EntityRootPart and root) then return end
+		
+		local initialDist = (root.Position - EntityRootPart.Position).Magnitude
 
-		local initialDistXZ = (Vector2.new(root.Position.X, root.Position.Z) - Vector2.new(EntityRootPart.Position.X, EntityRootPart.Position.Z)).Magnitude
+		local initialDistXZ =
+			(Vector2.new(root.Position.X, root.Position.Z)
+				- Vector2.new(EntityRootPart.Position.X, EntityRootPart.Position.Z)).Magnitude
+
 		local initialDistY = math.abs(root.Position.Y - EntityRootPart.Position.Y)
 
-		if initialDistXZ/3 > MaxDistance or initialDistY/3 > MaxDistanceY then
-			return
-		end
+		if initialDistXZ / 3 > MaxDistance or initialDistY / 3 > MaxDistanceY then return end
 
 		local Ping = Toggles.PingAdjust.Value and LocalPlayer:GetNetworkPing() or 0
 		local ParryTime = Time
@@ -769,36 +773,41 @@ function HandleParry(entity)
 				return
 			end
 
-			local progress = animationTrack.TimePosition / animationTrack.Length
-
-			if progress >= math.clamp(TimeEnd,0,1) then
+			local progress = animationTrack.TimePosition
+			if progress >= TimeEnd then
 				conn:Disconnect()
 				return
 			end
 
 			local rootPos = root.Position
 			local entityPos = EntityRootPart.Position
-			local distanceXZ = (Vector2.new(rootPos.X, rootPos.Z) - Vector2.new(entityPos.X, entityPos.Z)).Magnitude 
-			local distanceY = math.abs(rootPos.Y - entityPos.Y) 
 
-			if distanceXZ > MaxDistance or distanceY > MaxDistanceY then
-				return
-			end
+			local distanceXZ =
+				(Vector2.new(rootPos.X, rootPos.Z)
+					- Vector2.new(entityPos.X, entityPos.Z)).Magnitude
+
+			local distanceY = math.abs(rootPos.Y - entityPos.Y)
+
+			if distanceXZ > MaxDistance or distanceY > MaxDistanceY then return end
 
 			local ExtraTime = 0
-			if distanceXZ > MinimumDistance then
-				ExtraTime = (distanceXZ - MinimumDistance) * TimePerStud
+			if initialDist > MinimumDistance then
+				ExtraTime = (initialDist - MinimumDistance) * TimePerStud
 			end
+			
+			if Toggles.PingAdjust.Value then
+				Ping = LocalPlayer:GetNetworkPing()
+			end
+			
+			local Speed = animationTrack.Speed
 
-			if progress >= math.clamp(ParryTime - Ping/animationTrack.Length + ExtraTime, 0, 1) then
+			if progress >= ParryTime - Ping*Speed - ParryDelay*Speed + ExtraTime then
 				if HasToFace ~= 0 then
 					local toPlayer = (rootPos - entityPos).Unit
 					local enemyLook = horizontalLookVector(EntityRootPart)
 					local alignment = enemyLook:Dot(toPlayer)
 
-					if HasToFace > alignment then
-						return
-					end
+					if HasToFace > alignment then return end
 				end
 
 				task.spawn(function()
@@ -807,15 +816,23 @@ function HandleParry(entity)
 					VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
 				end)
 			end
-		end)	
+		end)
 
+		local StoppedConn
 		local EndedConn
 		EndedConn = animationTrack.Ended:Connect(function()
 			if conn then conn:Disconnect() end
-			EndedConn:Disconnect()
+			if StoppedConn then StoppedConn:Disconnect() end
+			if EndedConn then EndedConn:Disconnect() end
+		end)
+		StoppedConn = animationTrack.Stopped:Connect(function()
+			if conn then conn:Disconnect() end
+			if EndedConn then EndedConn:Disconnect() end
+			if StoppedConn then StoppedConn:Disconnect() end
 		end)
 
 		AutoParryMaid:Add(conn)
+		AutoParryMaid:Add(StoppedConn)
 		AutoParryMaid:Add(EndedConn)
 	end)
 end
@@ -835,7 +852,9 @@ function StartAutoParry()
 				HandleParry(entity)
 			end
 		else
-			HandleParry(entity:WaitForChild("Humanoid"):WaitForChild("Animator"))
+			if entity:WaitForChild("Humanoid"):WaitForChild("Animator") then
+				HandleParry(entity)
+			end
 		end
 	end)
 end
@@ -1377,7 +1396,8 @@ RightGroupBox:AddButton({
 
 LeftAPBox:AddSlider('ParryDelay', {
 	Text = 'Parry Delay',
-	Default = 10.8,
+	Tooltip = 'You probably shouldnt change this',
+	Default = 0,
 	Min = -250,
 	Max = 250,
 	Rounding = 1,
