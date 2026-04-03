@@ -1377,8 +1377,9 @@ RightGroupBox:AddDropdown("MapTpDropdown", {
 	Visible = true
 })
 
+local exits = {}
 task.spawn(function()
-	local exits = getAllExits()
+	exits = getAllExits()
 	local values = {}
 	for i, v in pairs(exits) do
 		table.insert(values, i)
