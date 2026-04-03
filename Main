@@ -627,18 +627,19 @@ function getAllExits(): {BasePart}
 	--	end
 	--end
 
-	local MapStuff = workspace:FindFirstChild("MapStuff")
+	local MapStuff = workspace:WaitForChild("MapStuff")
 	if not MapStuff then 
 		return
 	end
-	local Map = MapStuff:FindFirstChild("Map")
+	local Map = MapStuff:WaitForChild("Map")
 	if not Map then
 		return
 	end
-	local Spawns = Map:FindFirstChild("Spawns")
+	local Spawns = Map:WaitForChild("Spawns")
 	if not Spawns then
 		return
 	end
+	
 
 	for _, obj in ipairs(Spawns:GetChildren()) do
 		if obj:IsA("BasePart") and obj.Name == "Exit" then
@@ -852,8 +853,10 @@ function StartAutoParry()
 				HandleParry(entity)
 			end
 		else
-			if entity:WaitForChild("Humanoid"):WaitForChild("Animator") then
-				HandleParry(entity)
+			if entity ~= PlayerCharacter then
+				if entity:WaitForChild("Humanoid"):WaitForChild("Animator") then
+					HandleParry(entity)
+				end
 			end
 		end
 	end)
@@ -1366,19 +1369,23 @@ AttachmentBox:AddToggle("AttachToAllies", {Text = "Attach to Allies", Tooltip = 
 AttachmentBox:AddToggle("AttachToPlayers", {Text = "Attach to Players", Default = false})
 AttachmentBox:AddToggle("AttachToMobs", {Text = "Attach to Mobs", Default = true})
 
-local exits = getAllExits()
-local DropValues = {}
-for i, v in pairs(exits) do
-	table.insert(DropValues, i)
-end
-
 RightGroupBox:AddDropdown("MapTpDropdown", {
-	Values = DropValues,
+	Values = {},
 	Default = 1,
 	Text = "Select TP",
 	Searchable = true,
 	Visible = true
 })
+
+task.spawn(function()
+	local exits = getAllExits()
+	local values = {}
+	for i, v in pairs(exits) do
+		table.insert(values, i)
+	end
+	Options.MapTpDropdown:SetValues(values)
+end)
+
 
 RightGroupBox:AddButton({
 	Text = "Teleport to map",
